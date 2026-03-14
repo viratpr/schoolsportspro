@@ -46,7 +46,7 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
         )}
         <h1 className="text-3xl font-bold">{post.title}</h1>
-        <p className="text-sm text-muted-foreground mt-2">{typeof post.date === 'string' ? post.date : post.date instanceof Date ? post.date.toISOString().slice(0, 10) : ''} · {post.author}</p>
+        <p className="text-sm text-muted-foreground mt-2">{post.date} · {post.author}</p>
         <div className="prose prose-sm mt-8 max-w-none dark:prose-invert [&_pre:has([data-mermaid])]:p-0 [&_pre:has([data-mermaid])]:bg-transparent [&_pre:has([data-mermaid])]:border-0">
           <ReactMarkdown components={markdownComponents}>{post.content}</ReactMarkdown>
         </div>

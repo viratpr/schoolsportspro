@@ -157,7 +157,7 @@ export function DynamicScorecardForm({
             min={f.min}
             max={f.max}
             step={f.step}
-            value={typeof value === 'number' ? value : value ?? ''}
+            value={typeof value === 'number' ? value : typeof value === 'string' ? value : ''}
             onChange={(e) => setPayloadField(f.key, e.target.value === '' ? undefined : Number(e.target.value))}
             disabled={readOnly}
           />
@@ -174,7 +174,7 @@ export function DynamicScorecardForm({
               <Input
                 type="number"
                 placeholder="A"
-                value={item?.teamAScore ?? item?.a ?? ''}
+                value={item?.teamAScore ?? ''}
                 onChange={(e) => {
                   const next = [...arr];
                   next[i] = { ...next[i], teamAScore: Number(e.target.value || 0), teamBScore: Number(next[i]?.teamBScore ?? 0) };
@@ -187,7 +187,7 @@ export function DynamicScorecardForm({
               <Input
                 type="number"
                 placeholder="B"
-                value={item?.teamBScore ?? item?.b ?? ''}
+                value={item?.teamBScore ?? ''}
                 onChange={(e) => {
                   const next = [...arr];
                   next[i] = { ...next[i], teamAScore: Number(next[i]?.teamAScore ?? 0), teamBScore: Number(e.target.value || 0) };
@@ -220,7 +220,7 @@ export function DynamicScorecardForm({
       <div key={key}>
         <Label>{f.label}</Label>
         <Input
-          value={typeof value === 'string' ? value : value ?? ''}
+          value={typeof value === 'string' ? value : ''}
           onChange={(e) => setPayloadField(f.key, e.target.value)}
           disabled={readOnly}
         />

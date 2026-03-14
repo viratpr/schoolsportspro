@@ -9,12 +9,51 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bharatathlete"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
       - redisdata:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://bharatathlete:bharatathlete@postgres:5432/bharatathlete
+      JWT_SECRET: change-me-in-production
+      PORT: 3001
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Baked into client JS bundle — must be reachable from the browser
+        NEXT_PUBLIC_API_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    environment:
+      # Overrides NEXT_PUBLIC_API_URL at runtime for server-side code (NextAuth login calls)
+      NEXT_PUBLIC_API_URL: http://api:3001
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: change-me-in-production
+      APP_URL: http://localhost:3000
+    depends_on:
+      - api
 
 volumes:
   pgdata: {}
