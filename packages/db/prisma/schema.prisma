@@ -1,0 +1,533 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SportType {
+  TEAM
+  INDIVIDUAL
+}
+
+enum ScoringModel {
+  SIMPLE_POINTS
+  SETS
+  CRICKET_LITE
+  TIME_DISTANCE
+  ATTEMPTS_BEST_OF
+}
+
+enum Role {
+  PLATFORM_ADMIN
+  SCHOOL_ADMIN
+  COORDINATOR
+  COACH
+  VIEWER
+}
+
+enum Gender {
+  BOYS
+  GIRLS
+  MIXED
+  OPEN
+}
+
+enum StudentGender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum CompetitionStatus {
+  DRAFT
+  LIVE
+  CLOSED
+}
+
+enum CategoryFormat {
+  KNOCKOUT
+  INDIVIDUAL
+}
+
+enum MatchStatus {
+  SCHEDULED
+  READY
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum MatchResultMethod {
+  NORMAL
+  BYE
+  WALKOVER
+  TIEBREAKER
+}
+
+enum CricketMatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  TBD
+  NO_RESULT
+  ABANDONED
+}
+
+enum CricketResultType {
+  NORMAL
+  TIE
+  NO_RESULT
+  TBD
+}
+
+enum TossDecision {
+  BAT
+  BOWL
+}
+
+enum WicketType {
+  BOWLED
+  CAUGHT
+  LBW
+  RUN_OUT
+  STUMPED
+  HIT_WICKET
+  RETIRED_HURT
+  OBSTRUCTING_FIELD
+  HANDLED_BALL
+  HIT_BALL_TWICE
+  TIMED_OUT
+}
+
+model Sport {
+  id                            String             @id @default(cuid())
+  name                          String             @unique
+  sportType                     SportType
+  scoringModel                  ScoringModel
+  templateVersion               Int                @default(1)
+  defaultRulesText              String
+  defaultCategoryTemplatesJson  Json
+  teamConfigJson                Json?
+  matchConfigJson               Json?
+  scorecardTemplateJson         Json?
+  createdAt                     DateTime           @default(now())
+  updatedAt                     DateTime           @updatedAt
+  competitionSports             CompetitionSport[]
+}
+
+model Tenant {
+  id             String         @id @default(cuid())
+  name           String
+  slug           String?        @unique
+  city           String
+  state          String
+  country        String?
+  logoUrl        String?
+  createdAt      DateTime       @default(now())
+  users          User[]
+  students       Student[]
+  competitions   Competition[]
+  cricketMatches CricketMatch[]
+  settings       TenantSettings?
+  subscription   TenantSubscription?
+
+  @@index([slug])
+}
+
+model TenantSettings {
+  id                   String   @id @default(cuid())
+  tenantId              String   @unique
+  sportsLimitTrial      Int      @default(2)
+  certificateConfigJson Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+enum SubscriptionPlan {
+  TRIAL
+  PRO
+  TOURNAMENT_PASS
+  ANNUAL_PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  TRIALING
+}
+
+model TenantSubscription {
+  id                    String               @id @default(cuid())
+  tenantId              String               @unique
+  plan                  SubscriptionPlan     @default(TRIAL)
+  status                SubscriptionStatus   @default(TRIALING)
+  trialEndsAt           DateTime?
+  currentPeriodEnd      DateTime?
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  tenant                Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+}
+
+model User {
+  id                   String               @id @default(cuid())
+  tenantId             String?
+  name                 String
+  email                String                @unique
+  passwordHash         String
+  role                 Role
+  createdAt            DateTime              @default(now())
+  tenant               Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  passwordResetTokens  PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model Student {
+  id            String        @id @default(cuid())
+  tenantId      String
+  admissionNo   String
+  fullName      String
+  gender        StudentGender
+  dob           DateTime?
+  classStandard String
+  section       String?
+  house         String?
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  teamMembers   TeamMember[]
+  participants  ParticipantEntry[]
+
+  @@unique([tenantId, admissionNo])
+  @@index([tenantId, classStandard, section])
+}
+
+model Competition {
+  id                String             @id @default(cuid())
+  tenantId          String
+  name              String
+  academicYear      String
+  startDate         DateTime
+  endDate           DateTime
+  venue             String?
+  status            CompetitionStatus  @default(DRAFT)
+  shareToken        String?            @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  competitionSports CompetitionSport[]
+  cricketMatches    CricketMatch[]
+
+  @@index([tenantId, academicYear])
+}
+
+model CompetitionSport {
+  id                   String     @id @default(cuid())
+  tenantId             String
+  competitionId        String
+  sportId              String
+  enabled              Boolean    @default(true)
+  overriddenRulesText  String?
+  templateSnapshotJson Json?
+  templateVersion      Int?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+  competition          Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  sport                Sport       @relation(fields: [sportId], references: [id], onDelete: Restrict)
+  categories           Category[]
+
+  @@index([tenantId, competitionId])
+}
+
+model Category {
+  id                 String         @id @default(cuid())
+  tenantId           String
+  competitionSportId String
+  name               String
+  gender             Gender
+  eligibilityJson    Json
+  format             CategoryFormat
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  competitionSport   CompetitionSport @relation(fields: [competitionSportId], references: [id], onDelete: Cascade)
+  teams              Team[]
+  matches            Match[]
+  participants       ParticipantEntry[]
+  stats              CategoryStats?
+  cricketMatches     CricketMatch[]
+
+  @@index([tenantId, competitionSportId])
+}
+
+model Team {
+  id               String         @id @default(cuid())
+  tenantId         String
+  categoryId       String
+  name             String
+  coachName        String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  category         Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  members          TeamMember[]
+  wonResults       MatchResult[]  @relation("WinnerTeam")
+  matchAsA         Match[]        @relation("MatchTeamA")
+  matchAsB         Match[]        @relation("MatchTeamB")
+  cricketMatchAsA  CricketMatch[]  @relation("CricketTeamA")
+  cricketMatchAsB  CricketMatch[]  @relation("CricketTeamB")
+  cricketBatting   CricketInnings[] @relation("BattingTeam")
+  cricketBowling   CricketInnings[] @relation("BowlingTeam")
+
+  @@unique([tenantId, categoryId, name])
+  @@index([tenantId, categoryId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  tenantId  String
+  teamId    String
+  studentId String
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([teamId, studentId])
+  @@index([tenantId, teamId])
+}
+
+model Match {
+  id              String          @id @default(cuid())
+  tenantId        String
+  categoryId      String
+  roundNumber     Int
+  matchNumber     Int
+  teamAId         String?
+  teamBId         String?
+  winnerTeamId    String?
+  scheduledAt     DateTime?
+  venue           String?
+  status          MatchStatus     @default(SCHEDULED)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  category        Category        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  teamA           Team?           @relation("MatchTeamA", fields: [teamAId], references: [id], onDelete: SetNull)
+  teamB           Team?           @relation("MatchTeamB", fields: [teamBId], references: [id], onDelete: SetNull)
+  scorecard       Scorecard?
+  matchScorecard  MatchScorecard?
+  result          MatchResult?
+  cricketMatch    CricketMatch?
+  playerStatLines PlayerStatLine[]
+
+  @@unique([categoryId, roundNumber, matchNumber])
+  @@index([tenantId, categoryId, roundNumber])
+  @@index([tenantId, winnerTeamId])
+}
+
+model CricketMatch {
+  id                String             @id @default(cuid())
+  tenantId          String
+  competitionId     String
+  categoryId        String
+  teamAId           String
+  teamBId           String
+  matchId           String?            @unique
+  oversLimit        Int
+  ballsPerOver      Int                @default(6)
+  tossWinnerTeamId  String
+  tossDecision      TossDecision
+  status            CricketMatchStatus @default(SCHEDULED)
+  winnerTeamId      String?
+  resultType        CricketResultType  @default(TBD)
+  notes             String?
+  revisedTarget     Int?
+  scheduledAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  competition       Competition        @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  category          Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  teamA             Team               @relation("CricketTeamA", fields: [teamAId], references: [id], onDelete: Restrict)
+  teamB             Team               @relation("CricketTeamB", fields: [teamBId], references: [id], onDelete: Restrict)
+  match             Match?             @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  innings           CricketInnings[]
+
+  @@index([tenantId, competitionId])
+  @@index([tenantId, categoryId])
+}
+
+model CricketInnings {
+  id             String        @id @default(cuid())
+  tenantId       String
+  cricketMatchId String
+  inningsNumber Int
+  battingTeamId  String
+  bowlingTeamId  String
+  runs           Int           @default(0)
+  wickets        Int           @default(0)
+  legalBalls     Int           @default(0)
+  wides          Int           @default(0)
+  noBalls        Int           @default(0)
+  byes           Int           @default(0)
+  legByes        Int           @default(0)
+  fours          Int           @default(0)
+  sixes          Int           @default(0)
+  completed      Boolean       @default(false)
+  target         Int?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  cricketMatch   CricketMatch  @relation(fields: [cricketMatchId], references: [id], onDelete: Cascade)
+  battingTeam    Team          @relation("BattingTeam", fields: [battingTeamId], references: [id], onDelete: Restrict)
+  bowlingTeam    Team          @relation("BowlingTeam", fields: [bowlingTeamId], references: [id], onDelete: Restrict)
+
+  @@unique([cricketMatchId, inningsNumber])
+  @@index([tenantId, cricketMatchId])
+}
+
+model Scorecard {
+  id            String       @id @default(cuid())
+  tenantId      String
+  matchId       String       @unique
+  scoringModel  ScoringModel
+  scorecardJson Json
+  summaryA      String
+  summaryB      String
+  numericScoreA Float?
+  numericScoreB Float?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  match         Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, matchId])
+}
+
+enum MatchScorecardStatus {
+  DRAFT
+  FINAL
+}
+
+model MatchScorecard {
+  id                String               @id @default(cuid())
+  tenantId          String
+  matchId            String               @unique
+  templateVersion   Int                  @default(1)
+  status            MatchScorecardStatus  @default(DRAFT)
+  payloadJson       Json
+  computedJson      Json?
+  summaryA          String                @default("")
+  summaryB          String                @default("")
+  winnerTeamId      String?
+  finalizedAt      DateTime?
+  finalizedByUserId String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  match             Match                 @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, matchId])
+  @@index([tenantId, winnerTeamId])
+}
+
+model PlayerStatLine {
+  id         String   @id @default(cuid())
+  tenantId   String
+  matchId    String
+  teamId     String
+  studentId  String?
+  playerName String?
+  statsJson  Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  match      Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, teamId, studentId])
+  @@index([tenantId, matchId])
+  @@index([tenantId, teamId])
+}
+
+model MatchResult {
+  id               String            @id @default(cuid())
+  tenantId         String
+  matchId          String            @unique
+  winnerTeamId     String
+  method           MatchResultMethod
+  notes            String?
+  finalizedByUserId String
+  finalizedAt      DateTime          @default(now())
+  match            Match             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  winnerTeam       Team              @relation("WinnerTeam", fields: [winnerTeamId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, winnerTeamId])
+}
+
+model ParticipantEntry {
+  id        String            @id @default(cuid())
+  tenantId  String
+  categoryId String
+  studentId String
+  createdAt DateTime          @default(now())
+  category  Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  student   Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  result    IndividualResult?
+
+  @@unique([categoryId, studentId])
+  @@index([tenantId, categoryId])
+}
+
+model IndividualResult {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  participantEntryId String           @unique
+  numericValue       Float
+  displayValue       String
+  rank               Int
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  participantEntry   ParticipantEntry @relation(fields: [participantEntryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, rank])
+}
+
+model CategoryStats {
+  id               String   @id @default(cuid())
+  tenantId         String
+  categoryId       String   @unique
+  totalTeams       Int      @default(0)
+  totalMatches     Int      @default(0)
+  completedMatches Int      @default(0)
+  championTeamId   String?
+  lastUpdatedAt    DateTime @default(now())
+  category         Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, categoryId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  actorUserId String
+  action     String
+  entityType String
+  entityId   String?
+  metaJson   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}

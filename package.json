@@ -1,0 +1,23 @@
+{
+  "name": "bharatathlete",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @bharatathlete/web dev",
+    "dev:web:alt": "pnpm --filter @bharatathlete/web dev:alt",
+    "free:api-port": "npx kill-port 3001",
+    "dev:api": "pnpm --filter @bharatathlete/api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @bharatathlete/db prisma:generate",
+    "db:migrate": "pnpm --filter @bharatathlete/db prisma:migrate",
+    "db:seed": "pnpm --filter @bharatathlete/db prisma:seed",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}
