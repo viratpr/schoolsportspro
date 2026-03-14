@@ -1,0 +1,66 @@
+name: Build & Push to ECR
+
+on:
+  push:
+    branches:
+      - main
+      - preview-deploy
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: [self-hosted, desktop-01]
+
+    env:
+      ECR_REGISTRY: 722838585250.dkr.ecr.ap-south-1.amazonaws.com
+      ECR_REPOSITORY_API: athletic-bharat/api
+      ECR_REPOSITORY_WEB: athletic-bharat/web
+      AWS_REGION: ap-south-1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+            docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      - name: Set up QEMU
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Set up Docker Buildx
+        run: |
+          docker buildx create --name arm64builder --use || docker buildx use arm64builder
+          docker buildx inspect --bootstrap
+
+      - name: Build and push API image
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          docker buildx build \
+            --platform linux/arm64 \
+            -f apps/api/Dockerfile \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY_API:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY_API:$SHORT_SHA \
+            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY_API:buildcache \
+            --cache-to type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY_API:buildcache,mode=max \
+            --push \
+            .
+
+      - name: Build and push Web image
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          docker buildx build \
+            --platform linux/arm64 \
+            -f apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_URL=https://api.athleticbharat.com \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY_WEB:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY_WEB:$SHORT_SHA \
+            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY_WEB:buildcache \
+            --cache-to type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY_WEB:buildcache,mode=max \
+            --push \
+            .
+
+      - name: Cleanup buildx builder
+        if: always()
+        run: docker buildx rm arm64builder || true
