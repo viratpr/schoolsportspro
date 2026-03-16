@@ -9,6 +9,7 @@ import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { getSportSymbol } from '@/lib/sport-symbols';
 
 type Competition = {
   id: string;
@@ -179,7 +180,7 @@ export default function CompetitionDashboardPage() {
             <Card key={cs.id}>
               <CardContent className="py-4">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-medium">{cs.sport.name}</span>
+                  <span className="font-medium">{getSportSymbol(cs.sport.name)} {cs.sport.name}</span>
                   <Link href={`/app/competitions/${competitionId}/sport/${cs.id}`}>
                     <Button size="sm">Open</Button>
                   </Link>

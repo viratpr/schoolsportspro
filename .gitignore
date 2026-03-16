@@ -1,1 +1,12 @@
 node_modules
+.next
+dist
+build
+.turbo
+.env
+.env.local
+coverage
+*.log
+pnpm-lock.yaml
+apps/web/.next
+packages/db/prisma/dev.db

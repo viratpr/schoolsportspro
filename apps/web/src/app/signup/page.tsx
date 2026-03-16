@@ -84,7 +84,11 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-muted/30">
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md flex flex-col gap-4">
+        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground underline inline-flex items-center gap-1">
+          ← Back to home
+        </Link>
+        <Card className="w-full">
         <CardHeader>
           <CardTitle>Create your school account</CardTitle>
           <p className="text-sm text-muted-foreground">Start your free trial. No card required.</p>
@@ -138,6 +142,7 @@ export default function SignupPage() {
           </p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ const NEXTAUTH_SECRET =
 const AUTH_FETCH_TIMEOUT_MS = 15000;
 
 export const authOptions: AuthOptions = {
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: 'Credentials',

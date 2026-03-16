@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { apiGet, ApiClientError, ApiResult } from '@/lib/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getSportSymbol } from '@/lib/sport-symbols';
 
 function assertOk<T>(r: ApiResult<T>): T {
   if (!r.ok) throw new ApiClientError(r.error.message, r.error.statusCode, r.error.code, r.error.details);
@@ -49,7 +50,7 @@ export default function PlatformSportsPage() {
           <Card key={s.id}>
             <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
               <div>
-                <p className="font-semibold">{s.name}</p>
+                <p className="font-semibold">{getSportSymbol(s.name)} {s.name}</p>
                 <p className="text-sm text-muted-foreground">{s.sportType} · {s.scoringModel}</p>
                 <p className="text-xs text-muted-foreground mt-1">Flow: {getFlowSummary(s.sportType)}</p>
               </div>

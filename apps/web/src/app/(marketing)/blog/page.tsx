@@ -27,7 +27,7 @@ export default function BlogListPage() {
               )}
               <h2 className="font-semibold text-lg group-hover:underline">{post.title}</h2>
               <p className="text-sm text-muted-foreground mt-1">{post.description}</p>
-              <p className="text-xs text-muted-foreground mt-2">{post.date} · {post.author}</p>
+              <p className="text-xs text-muted-foreground mt-2">{typeof post.date === 'string' ? post.date : post.date instanceof Date ? post.date.toISOString().slice(0, 10) : ''} · {post.author}</p>
             </Link>
           </li>
         ))}

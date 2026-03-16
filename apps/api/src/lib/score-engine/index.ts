@@ -158,10 +158,8 @@ function simplePointsCalculator(
   teamAId: string,
   teamBId: string
 ): ComputeResult {
-  const teamA = asRecord(payload.teamA);
-  const teamB = asRecord(payload.teamB);
-  const scoreA = Number(payload.teamAScore ?? teamA.score ?? payload.scoreA ?? 0);
-  const scoreB = Number(payload.teamBScore ?? teamB.score ?? payload.scoreB ?? 0);
+  const scoreA = Number(payload.teamAScore ?? payload.teamA?.score ?? payload.scoreA ?? 0);
+  const scoreB = Number(payload.teamBScore ?? payload.teamB?.score ?? payload.scoreB ?? 0);
   const summaryA = substitute(summaryFormat.teamLine, { score: scoreA });
   const summaryB = substitute(summaryFormat.teamLine, { score: scoreB });
   let winnerTeamId: string | null = null;
@@ -238,9 +236,8 @@ function cricketLiteCalculator(
   teamAId: string,
   teamBId: string
 ): ComputeResult {
-  const inningsArr = Array.isArray(payload.innings) ? payload.innings : [];
-  const innings1 = asRecord(payload.innings1 ?? inningsArr[0]);
-  const innings2 = asRecord(payload.innings2 ?? inningsArr[1]);
+  const innings1 = asRecord(payload.innings1 ?? payload.innings?.[0]);
+  const innings2 = asRecord(payload.innings2 ?? payload.innings?.[1]);
   const runs1 = Number(innings1.runs ?? 0);
   const wickets1 = Number(innings1.wickets ?? 0);
   const overs1 = Number(innings1.overs ?? innings1.legalBalls ?? 0);
@@ -295,10 +292,8 @@ function timeDistanceCalculator(
   teamBId: string
 ): ComputeResult {
   const key = rule.valueKey;
-  const teamA = asRecord(payload.teamA);
-  const teamB = asRecord(payload.teamB);
-  const valA = Number(payload.teamAValue ?? teamA[key] ?? payload[key + 'A'] ?? 0);
-  const valB = Number(payload.teamBValue ?? teamB[key] ?? payload[key + 'B'] ?? 0);
+  const valA = Number(payload.teamAValue ?? payload.teamA?.[key] ?? payload[key + 'A'] ?? 0);
+  const valB = Number(payload.teamBValue ?? payload.teamB?.[key] ?? payload[key + 'B'] ?? 0);
   const summaryA = substitute(summaryFormat.teamLine, { value: valA, score: valA });
   const summaryB = substitute(summaryFormat.teamLine, { value: valB, score: valB });
   let winnerTeamId: string | null = null;
@@ -331,10 +326,8 @@ function attemptsBestOfCalculator(
   teamAId: string,
   teamBId: string
 ): ComputeResult {
-  const teamA = asRecord(payload.teamA);
-  const teamB = asRecord(payload.teamB);
-  const bestA = Number(payload.teamABest ?? teamA.best ?? payload.bestA ?? 0);
-  const bestB = Number(payload.teamBBest ?? teamB.best ?? payload.bestB ?? 0);
+  const bestA = Number(payload.teamABest ?? payload.teamA?.best ?? payload.bestA ?? 0);
+  const bestB = Number(payload.teamBBest ?? payload.teamB?.best ?? payload.bestB ?? 0);
   const summaryA = substitute(summaryFormat.teamLine, { best: bestA, score: bestA });
   const summaryB = substitute(summaryFormat.teamLine, { best: bestB, score: bestB });
   let winnerTeamId: string | null = null;

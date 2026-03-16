@@ -219,21 +219,21 @@ export default function CricketMatchDetailPage() {
           size="sm"
           onClick={() => setActiveTab('1')}
         >
-          Innings 1
+          1️⃣ Innings 1
         </Button>
         <Button
           variant={activeTab === '2' ? 'secondary' : 'ghost'}
           size="sm"
           onClick={() => setActiveTab('2')}
         >
-          Innings 2
+          2️⃣ Innings 2
         </Button>
         <Button
           variant={activeTab === 'result' ? 'secondary' : 'ghost'}
           size="sm"
           onClick={() => setActiveTab('result')}
         >
-          Result
+          🏆 Result
         </Button>
       </div>
 

@@ -123,8 +123,18 @@ export default async function studentsRoutes(app: FastifyInstance) {
       requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR]);
       const student = await prisma.student.findFirst({ where: { id: studentId, tenantId } });
       if (!student) throw notFound('Student not found');
-      await prisma.student.delete({ where: { id: studentId } });
-      return reply.status(204).send();
+      try {
+        await prisma.student.delete({ where: { id: studentId } });
+      } catch (err) {
+        const prismaErr = err as { code?: string; message?: string };
+        if (prismaErr.code === 'P2003' || (prismaErr.message && /foreign key|constraint|P2003/i.test(prismaErr.message))) {
+          throw conflict(
+            'Cannot delete this student because they are assigned to teams or competition categories. Remove them from teams and categories first.'
+          );
+        }
+        throw err;
+      }
+      return reply.code(204).send();
     }
   );
 
@@ -134,19 +144,36 @@ export default async function studentsRoutes(app: FastifyInstance) {
       const { tenantId } = tenantIdParam.parse(request.params);
       requireTenantAccess(request, tenantId);
       requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR]);
-      const body = request.body as { csv?: string };
+      const body = request.body as { csv?: string } | null | undefined;
       const csv = typeof body?.csv === 'string' ? body.csv : '';
       const lines = csv.trim().split(/\r?\n/).filter(Boolean);
-      if (lines.length < 2) return reply.status(400).send({ error: 'CSV must have header and at least one row' });
+      if (lines.length < 2) {
+        return reply.send({
+          created: 0,
+          createdIds: [],
+          errors: ['CSV must have header and at least one data row.'],
+        });
+      }
       const header = lines[0].toLowerCase().split(',').map((h) => h.trim());
       const admissionNoIdx = header.findIndex((h) => h === 'admissionno' || h === 'admission_no');
       const fullNameIdx = header.findIndex((h) => h === 'fullname' || h === 'full_name' || h === 'name');
       const genderIdx = header.findIndex((h) => h === 'gender');
-      const classIdx = header.findIndex((h) => h === 'class' || h === 'classstandard' || h === 'standard');
       const sectionIdx = header.findIndex((h) => h === 'section');
       const houseIdx = header.findIndex((h) => h === 'house');
+      const classIdx = header.findIndex((h) => h === 'class' || h === 'classstandard' || h === 'standard');
       if (admissionNoIdx < 0 || fullNameIdx < 0) {
-        return reply.status(400).send({ error: 'CSV must include admissionNo and fullName columns' });
+        return reply.send({
+          created: 0,
+          createdIds: [],
+          errors: ['CSV must include admissionNo and fullName columns.'],
+        });
+      }
+      if (classIdx < 0) {
+        return reply.send({
+          created: 0,
+          createdIds: [],
+          errors: ['CSV must include a class (or classStandard) column.'],
+        });
       }
       const created: string[] = [];
       const errors: string[] = [];
@@ -158,20 +185,29 @@ export default async function studentsRoutes(app: FastifyInstance) {
           errors.push(`Row ${i + 1}: missing admissionNo or fullName`);
           continue;
         }
+        const existing = await prisma.student.findUnique({
+          where: { tenantId_admissionNo: { tenantId, admissionNo } },
+        });
+        if (existing) {
+          errors.push(`Row ${i + 1}: Admission number ${admissionNo} already exists. Duplicate records cannot be imported.`);
+          continue;
+        }
+        const classStandardRaw = classIdx >= 0 ? (cells[classIdx] ?? '').trim() : '';
+        if (!classStandardRaw) {
+          errors.push(`Row ${i + 1}: Class is required. Empty class is not allowed.`);
+          continue;
+        }
         const genderStr = (cells[genderIdx] || 'MALE').toUpperCase();
         const gender = ['MALE', 'FEMALE', 'OTHER'].includes(genderStr) ? genderStr : 'MALE';
-        const classStandard = cells[classIdx] || '1';
         const section = sectionIdx >= 0 ? cells[sectionIdx] : undefined;
         const house = houseIdx >= 0 ? cells[houseIdx] : undefined;
         try {
-          await prisma.student.upsert({
-            where: { tenantId_admissionNo: { tenantId, admissionNo } },
-            create: { tenantId, admissionNo, fullName, gender: gender as 'MALE' | 'FEMALE' | 'OTHER', classStandard, section, house },
-            update: { fullName, gender: gender as 'MALE' | 'FEMALE' | 'OTHER', classStandard, section, house },
+          await prisma.student.create({
+            data: { tenantId, admissionNo, fullName, gender: gender as 'MALE' | 'FEMALE' | 'OTHER', classStandard: classStandardRaw, section, house },
           });
           created.push(admissionNo);
         } catch {
-          errors.push(`Row ${i + 1}: failed to upsert`);
+          errors.push(`Row ${i + 1}: failed to create student`);
         }
       }
       const userId = (request as FastifyRequest & { user?: { userId: string } }).user?.userId;

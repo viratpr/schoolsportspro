@@ -9,9 +9,9 @@ export type AuditParams = {
   metaJson?: Record<string, unknown> | null;
 };
 
-export async function logAudit(prisma: Pick<PrismaClient, 'auditLog'>, params: AuditParams): Promise<void> {
+export async function logAudit(prisma: PrismaClient, params: AuditParams): Promise<void> {
   try {
-    const db = prisma as unknown as {
+    const db = prisma as PrismaClient & {
       auditLog: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> };
     };
     await db.auditLog.create({

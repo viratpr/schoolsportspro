@@ -28,12 +28,11 @@ export default async function AppLayout({
       <header className="border-b px-4 py-3 flex items-center gap-4 bg-background/60 backdrop-blur-sm">
         <Link href="/app/dashboard" className="font-semibold">Athletic Bharat</Link>
         <nav className="flex gap-4">
-          <Link href="/app/dashboard" className="text-sm text-muted-foreground hover:text-foreground">Dashboard</Link>
-          <Link href="/app/students" className="text-sm text-muted-foreground hover:text-foreground">Students</Link>
-          <Link href="/app/competitions" className="text-sm text-muted-foreground hover:text-foreground">Competitions</Link>
-          <Link href="/app/cricket/matches" className="text-sm text-muted-foreground hover:text-foreground">Cricket scorecards</Link>
-          <Link href="/app/billing" className="text-sm text-muted-foreground hover:text-foreground">Billing</Link>
-          <Link href="/app/settings" className="text-sm text-muted-foreground hover:text-foreground">School profile</Link>
+          <Link href="/app/dashboard" className="text-sm text-muted-foreground hover:text-foreground">📊 Dashboard</Link>
+          <Link href="/app/students" className="text-sm text-muted-foreground hover:text-foreground">👥 Students</Link>
+          <Link href="/app/competitions" className="text-sm text-muted-foreground hover:text-foreground">🏆 Competitions</Link>
+          <Link href="/app/billing" className="text-sm text-muted-foreground hover:text-foreground">💳 Billing</Link>
+          <Link href="/app/settings" className="text-sm text-muted-foreground hover:text-foreground">⚙️ School Profile</Link>
         </nav>
         <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
           {session.user.email}

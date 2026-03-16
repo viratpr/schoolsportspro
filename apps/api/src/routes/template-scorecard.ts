@@ -74,7 +74,7 @@ export type VolleyballTemplateScorecardPutBody = TemplateScorecardPutBody<Volley
 export default async function templateScorecardRoutes(app: FastifyInstance) {
   app.addHook('preHandler', verifyJWT);
 
-  app.get<{ Params: { tenantId: string; matchId: string } }>(
+  app.get<{ Params: { tenantId: string; matchId: string }; Reply: TemplateScorecardResponse }>(
     '/tenants/:tenantId/matches/:matchId/template-scorecard',
     async (request, reply) => {
       const { tenantId } = tenantIdParam.parse(request.params);
@@ -146,8 +146,8 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
           ? {
               id: match.matchScorecard.id,
               status: match.matchScorecard.status,
-              payloadJson: match.matchScorecard.payloadJson as Record<string, unknown>,
-              computedJson: match.matchScorecard.computedJson as Record<string, unknown> | null,
+              payloadJson: match.matchScorecard.payloadJson,
+              computedJson: match.matchScorecard.computedJson,
               summaryA: match.matchScorecard.summaryA,
               summaryB: match.matchScorecard.summaryB,
               winnerTeamId: match.matchScorecard.winnerTeamId,
@@ -343,7 +343,7 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
 }
 
 async function upsertPlayerStatLines(
-  db: Pick<Prisma.TransactionClient, 'playerStatLine'>,
+  db: Prisma.TransactionClient | import('@bharatathlete/db').PrismaClient,
   tenantId: string,
   matchId: string,
   playerLines: PlayerStatLineInput[]
