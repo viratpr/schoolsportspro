@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getSportSymbol } from '@/lib/sport-symbols';
 
 type Competition = { id: string; name: string };
 type Category = {
@@ -173,9 +174,9 @@ export default function SportSingleWindowPage() {
           {competition.name}
         </Link>
         <span>/</span>
-        <span className="text-foreground font-medium">{competitionSport.sport.name}</span>
+        <span className="text-foreground font-medium">{getSportSymbol(competitionSport.sport.name)} {competitionSport.sport.name}</span>
       </div>
-      <h1 className="text-2xl font-bold mb-4">{competitionSport.sport.name}</h1>
+      <h1 className="text-2xl font-bold mb-4">{getSportSymbol(competitionSport.sport.name)} {competitionSport.sport.name}</h1>
 
       {categories.length === 0 ? (
         <Card>

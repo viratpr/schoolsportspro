@@ -19,8 +19,8 @@ export default async function PlatformLayout({
       <header className="border-b px-4 py-3 flex items-center gap-4">
         <Link href="/platform/tenants" className="font-semibold">Athletic Bharat (Platform)</Link>
         <nav className="flex gap-4">
-          <Link href="/platform/tenants" className="text-sm text-muted-foreground hover:text-foreground">Tenants</Link>
-          <Link href="/platform/sports" className="text-sm text-muted-foreground hover:text-foreground">Sports Library</Link>
+          <Link href="/platform/tenants" className="text-sm text-muted-foreground hover:text-foreground">🏢 Tenants</Link>
+          <Link href="/platform/sports" className="text-sm text-muted-foreground hover:text-foreground">📚 Sports Library</Link>
         </nav>
         <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
           {session.user.email}

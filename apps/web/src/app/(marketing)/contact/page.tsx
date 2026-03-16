@@ -6,12 +6,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidEmail(value: string): boolean {
+  return EMAIL_REGEX.test(value.trim());
+}
+
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setEmailError(null);
+    const form = e.currentTarget;
+    const email = (form.elements.namedItem('email') as HTMLInputElement)?.value ?? '';
+    if (!email.trim()) {
+      setEmailError('Email is required.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setEmailError('Please enter a valid email address (e.g. name@school.com).');
+      return;
+    }
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
@@ -42,14 +60,33 @@ export default function ContactPage() {
               </div>
               <div>
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" required className="mt-1" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  className="mt-1"
+                  aria-invalid={!!emailError}
+                  aria-describedby={emailError ? 'email-error' : undefined}
+                  onBlur={(e) => {
+                    const v = e.target.value;
+                    if (!v.trim()) setEmailError(null);
+                    else setEmailError(isValidEmail(v) ? null : 'Please enter a valid email address (e.g. name@school.com).');
+                  }}
+                  onChange={() => emailError && setEmailError(null)}
+                />
+                {emailError && (
+                  <p id="email-error" className="text-sm text-destructive mt-1" role="alert">
+                    {emailError}
+                  </p>
+                )}
               </div>
               <div>
                 <Label htmlFor="school">School name</Label>
                 <Input id="school" name="school" className="mt-1" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Sending…' : 'Send request'}
+                {loading ? 'Sending…' : 'Request Demo'}
               </Button>
             </form>
           )}

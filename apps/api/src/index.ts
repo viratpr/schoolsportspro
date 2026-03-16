@@ -35,6 +35,25 @@ app.setErrorHandler((err, request, reply) => {
       details: err.flatten().fieldErrors,
     });
   }
+  const errAny = err as { code?: string; statusCode?: number };
+  if (errAny.code === 'FST_ERR_CTP_EMPTY_JSON_BODY') {
+    return reply.status(400).send({
+      error: 'Request body cannot be empty when Content-Type is application/json.',
+      code: 'EMPTY_BODY',
+    });
+  }
+  const errConstraint = err as { code?: string; message?: string; cause?: unknown };
+  const code = errConstraint.code ?? (errConstraint.cause as { code?: string })?.code;
+  const msg = errConstraint.message ?? (errConstraint.cause as { message?: string })?.message ?? '';
+  const isConstraint =
+    code === 'P2003' || /foreign key|constraint|P2003|unique constraint/i.test(msg) || (errConstraint.cause && (errConstraint.cause as { code?: string }).code === 'P2003');
+  if (isConstraint) {
+    return reply.status(409).send({
+      error:
+        'Cannot delete this student because they are assigned to teams or competition categories. Remove them from teams and categories first.',
+      code: 'CONFLICT',
+    });
+  }
   request.log.error(err);
   return reply.status(500).send({
     error: 'Internal server error',

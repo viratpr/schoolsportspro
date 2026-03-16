@@ -44,11 +44,12 @@ export async function api<T>(
   const url = new URL(path.startsWith('http') ? path : `${API_BASE}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const token = await getToken();
+  const hasBody = init.body != null && init.body !== '';
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
     ...(init.headers as Record<string, string>),
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -64,15 +65,16 @@ export async function api<T>(
   }
   clearTimeout(timeoutId);
 
-  const data = await res.json().catch(() => ({})) as ApiErrorBody | T;
   if (!res.ok) {
-    const body = data as ApiErrorBody;
+    const data = await res.json().catch(() => ({})) as ApiErrorBody;
     const message =
-      (typeof body?.error === 'string' ? body.error : null) ??
+      (typeof data?.error === 'string' ? data.error : null) ??
       (res.statusText || `Request failed (${res.status})`);
-    return { ok: false, error: { message, statusCode: res.status, code: body?.code, details: body?.details } };
+    return { ok: false, error: { message, statusCode: res.status, code: data?.code, details: data?.details } };
   }
-  return { ok: true, data: data as T };
+  if (res.status === 204) return { ok: true, data: undefined as T };
+  const data = await res.json().catch(() => ({})) as T;
+  return { ok: true, data };
 }
 
 export const apiGet = <T>(path: string, params?: Record<string, string>) =>

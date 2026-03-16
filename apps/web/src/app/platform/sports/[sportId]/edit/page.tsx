@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
+import { getSportSymbol } from '@/lib/sport-symbols';
 
 function assertOk<T>(r: ApiResult<T>): T {
   if (!r.ok) throw new ApiClientError(r.error.message, r.error.statusCode, r.error.code, r.error.details);
@@ -123,7 +124,7 @@ export default function EditSportPage() {
       <div className="mb-4">
         <Link href="/platform/sports" className="text-sm text-muted-foreground hover:underline">← Sports</Link>
       </div>
-      <h1 className="text-2xl font-bold mb-2">Edit sport: {sport.name}</h1>
+      <h1 className="text-2xl font-bold mb-2">Edit sport: {getSportSymbol(sport.name)} {sport.name}</h1>
       <p className="text-sm text-muted-foreground mb-4 border-l-2 border-muted pl-2">
         Flow for this sport: {getFlowSummary(sport.sportType, templates)}
       </p>

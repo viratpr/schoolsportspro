@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 export const createStudentSchema = z.object({
-  admissionNo: z.string().min(1).max(50),
-  fullName: z.string().min(1).max(200),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
+  admissionNo: z.string().min(1, 'Please enter admission number').max(50, 'Admission number is too long'),
+  fullName: z.string().min(1, 'Please enter student\'s full name').max(200, 'Name is too long'),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER'], { required_error: 'Please select gender', invalid_type_error: 'Please select gender' }),
   dob: z.string().datetime().optional(),
-  classStandard: z.string().min(1).max(20),
+  classStandard: z.string().min(1, 'Please enter class or standard').max(20, 'Class is too long'),
   section: z.string().max(10).optional(),
   house: z.string().max(50).optional(),
   active: z.boolean().optional().default(true),
