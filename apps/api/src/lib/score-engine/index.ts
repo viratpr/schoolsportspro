@@ -158,8 +158,26 @@ function simplePointsCalculator(
   teamAId: string,
   teamBId: string
 ): ComputeResult {
-  const scoreA = Number(payload.teamAScore ?? payload.teamA?.score ?? payload.scoreA ?? 0);
-  const scoreB = Number(payload.teamBScore ?? payload.teamB?.score ?? payload.scoreB ?? 0);
+  const teamAObj = asRecord(payload.teamA ?? payload['teamA']);
+  const teamBObj = asRecord(payload.teamB ?? payload['teamB']);
+  const scoreA = Number(
+    payload.teamAScore ??
+      payload['teamAScore'] ??
+      teamAObj.score ??
+      teamAObj['score'] ??
+      payload.scoreA ??
+      payload['scoreA'] ??
+      0
+  );
+  const scoreB = Number(
+    payload.teamBScore ??
+      payload['teamBScore'] ??
+      teamBObj.score ??
+      teamBObj['score'] ??
+      payload.scoreB ??
+      payload['scoreB'] ??
+      0
+  );
   const summaryA = substitute(summaryFormat.teamLine, { score: scoreA });
   const summaryB = substitute(summaryFormat.teamLine, { score: scoreB });
   let winnerTeamId: string | null = null;
@@ -236,8 +254,11 @@ function cricketLiteCalculator(
   teamAId: string,
   teamBId: string
 ): ComputeResult {
-  const innings1 = asRecord(payload.innings1 ?? payload.innings?.[0]);
-  const innings2 = asRecord(payload.innings2 ?? payload.innings?.[1]);
+  const inningsArray = Array.isArray(payload.innings ?? payload['innings'])
+    ? ((payload.innings ?? payload['innings']) as unknown[])
+    : [];
+  const innings1 = asRecord(payload.innings1 ?? payload['innings1'] ?? inningsArray[0]);
+  const innings2 = asRecord(payload.innings2 ?? payload['innings2'] ?? inningsArray[1]);
   const runs1 = Number(innings1.runs ?? 0);
   const wickets1 = Number(innings1.wickets ?? 0);
   const overs1 = Number(innings1.overs ?? innings1.legalBalls ?? 0);
@@ -292,8 +313,24 @@ function timeDistanceCalculator(
   teamBId: string
 ): ComputeResult {
   const key = rule.valueKey;
-  const valA = Number(payload.teamAValue ?? payload.teamA?.[key] ?? payload[key + 'A'] ?? 0);
-  const valB = Number(payload.teamBValue ?? payload.teamB?.[key] ?? payload[key + 'B'] ?? 0);
+  const teamAObj = asRecord(payload.teamA ?? payload['teamA']);
+  const teamBObj = asRecord(payload.teamB ?? payload['teamB']);
+  const valA = Number(
+    payload.teamAValue ??
+      payload['teamAValue'] ??
+      (teamAObj as Record<string, unknown>)[key] ??
+      payload[`${key}A`] ??
+      payload[`${key}a`] ??
+      0
+  );
+  const valB = Number(
+    payload.teamBValue ??
+      payload['teamBValue'] ??
+      (teamBObj as Record<string, unknown>)[key] ??
+      payload[`${key}B`] ??
+      payload[`${key}b`] ??
+      0
+  );
   const summaryA = substitute(summaryFormat.teamLine, { value: valA, score: valA });
   const summaryB = substitute(summaryFormat.teamLine, { value: valB, score: valB });
   let winnerTeamId: string | null = null;
@@ -326,8 +363,26 @@ function attemptsBestOfCalculator(
   teamAId: string,
   teamBId: string
 ): ComputeResult {
-  const bestA = Number(payload.teamABest ?? payload.teamA?.best ?? payload.bestA ?? 0);
-  const bestB = Number(payload.teamBBest ?? payload.teamB?.best ?? payload.bestB ?? 0);
+  const teamAObj = asRecord(payload.teamA ?? payload['teamA']);
+  const teamBObj = asRecord(payload.teamB ?? payload['teamB']);
+  const bestA = Number(
+    payload.teamABest ??
+      payload['teamABest'] ??
+      teamAObj.best ??
+      teamAObj['best'] ??
+      payload.bestA ??
+      payload['bestA'] ??
+      0
+  );
+  const bestB = Number(
+    payload.teamBBest ??
+      payload['teamBBest'] ??
+      teamBObj.best ??
+      teamBObj['best'] ??
+      payload.bestB ??
+      payload['bestB'] ??
+      0
+  );
   const summaryA = substitute(summaryFormat.teamLine, { best: bestA, score: bestA });
   const summaryB = substitute(summaryFormat.teamLine, { best: bestB, score: bestB });
   let winnerTeamId: string | null = null;
