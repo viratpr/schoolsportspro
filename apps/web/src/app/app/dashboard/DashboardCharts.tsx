@@ -80,7 +80,10 @@ export function DashboardCharts({ tenantId }: { tenantId: string }) {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip formatter={(value: number | undefined) => [value ?? 0, 'Participants']} labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''} />
+                  <Tooltip
+                    formatter={(value: any) => [value ?? 0, 'Participants']}
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
+                  />
                   <Bar dataKey="count" fill={barColor} name="Participants" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -104,7 +107,10 @@ export function DashboardCharts({ tenantId }: { tenantId: string }) {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip formatter={(value: number | undefined) => [value ?? 0, 'Participants']} labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''} />
+                  <Tooltip
+                    formatter={(value: any) => [value ?? 0, 'Participants']}
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
+                  />
                   <Bar dataKey="count" fill={barColor} name="Participants" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -134,7 +140,7 @@ export function DashboardCharts({ tenantId }: { tenantId: string }) {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip
-                    formatter={(value: number | undefined, name: string) => [value ?? 0, name === 'completed' ? 'Completed' : 'Total']}
+                    formatter={(value: any, name: string) => [value ?? 0, name === 'completed' ? 'Completed' : 'Total']}
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
                   />
                   <Legend formatter={(value) => (value === 'completed' ? 'Completed' : 'Total')} />
