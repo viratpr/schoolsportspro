@@ -5,7 +5,7 @@ import { tenantIdParam, matchIdParam } from '../schemas/common.js';
 import { templateScorecardPutBodySchema } from '../schemas/scorecard.js';
 import { notFound, badRequest, forbidden } from '../lib/errors.js';
 import { Role } from '@bharatathlete/db';
-import type { Prisma } from '@bharatathlete/db';
+import type { Prisma, PrismaClient } from '@bharatathlete/db';
 import { parseTemplateSafe } from '../lib/templates/validator.js';
 import type {
   SportScorecardTemplate,
@@ -125,9 +125,9 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
       if (!match) throw notFound('Match not found');
       const snapshot = match.category.competitionSport.templateSnapshotJson;
       if (!snapshot || typeof snapshot !== 'object') {
-        return reply.status(404).send({
-          error: 'Template scorecard not available for this match. Use legacy scorecard or enable a sport with a scorecard template.',
-        });
+        throw notFound(
+          'Template scorecard not available for this match. Use legacy scorecard or enable a sport with a scorecard template.'
+        );
       }
       const template = parseTemplateSafe(snapshot);
       if (!template) throw badRequest('Invalid scorecard template for this competition sport.');
@@ -343,7 +343,7 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
 }
 
 async function upsertPlayerStatLines(
-  db: Prisma.TransactionClient | import('@bharatathlete/db').PrismaClient,
+  db: Prisma.TransactionClient | PrismaClient,
   tenantId: string,
   matchId: string,
   playerLines: PlayerStatLineInput[]
