@@ -140,10 +140,10 @@ export function DashboardCharts({ tenantId }: { tenantId: string }) {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip
-                    formatter={(value: any, name: string | undefined) => [value ?? 0, name === 'completed' ? 'Completed' : 'Total']}
+                    formatter={(value: any, name: any) => [value ?? 0, name === 'completed' ? 'Completed' : 'Total']}
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
                   />
-                  <Legend formatter={(value) => (value === 'completed' ? 'Completed' : 'Total')} />
+                  <Legend formatter={(value: any) => (value === 'completed' ? 'Completed' : 'Total')} />
                   <Line type="monotone" dataKey="completed" stroke={lineColor} strokeWidth={2} dot={{ r: 4 }} name="completed" />
                   <Line type="monotone" dataKey="total" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 4 }} name="total" />
                 </LineChart>
