@@ -146,8 +146,9 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
           ? {
               id: match.matchScorecard.id,
               status: match.matchScorecard.status,
-              payloadJson: match.matchScorecard.payloadJson,
-              computedJson: match.matchScorecard.computedJson,
+              payloadJson: (match.matchScorecard.payloadJson ?? {}) as Record<string, unknown>,
+              computedJson: (match.matchScorecard.computedJson ??
+                null) as Record<string, unknown> | null,
               summaryA: match.matchScorecard.summaryA,
               summaryB: match.matchScorecard.summaryB,
               winnerTeamId: match.matchScorecard.winnerTeamId,

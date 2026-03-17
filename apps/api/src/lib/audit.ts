@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@bharatathlete/db';
+import type { Prisma, PrismaClient } from '@bharatathlete/db';
 
 export type AuditParams = {
   tenantId: string | null;
@@ -9,7 +9,10 @@ export type AuditParams = {
   metaJson?: Record<string, unknown> | null;
 };
 
-export async function logAudit(prisma: PrismaClient, params: AuditParams): Promise<void> {
+export async function logAudit(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  params: AuditParams
+): Promise<void> {
   try {
     const db = prisma as PrismaClient & {
       auditLog: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> };
