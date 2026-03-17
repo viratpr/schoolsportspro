@@ -140,7 +140,7 @@ export function DashboardCharts({ tenantId }: { tenantId: string }) {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip
-                    formatter={(value: any, name: string | undefined) => [value ?? 0, name === 'completed' ? 'Completed' : 'Total']}
+                    formatter={(value: any, name: any) => [value ?? 0, name === 'completed' ? 'Completed' : 'Total']}
                     labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
                   />
                   <Legend formatter={(value) => (value === 'completed' ? 'Completed' : 'Total')} />
