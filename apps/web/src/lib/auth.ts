@@ -13,7 +13,7 @@ const NEXTAUTH_SECRET =
 
 const AUTH_FETCH_TIMEOUT_MS = 15000;
 
-export const authOptions: AuthOptions = {
+export const authOptions = {
   trustHost: true,
   providers: [
     CredentialsProvider({
@@ -87,4 +87,4 @@ export const authOptions: AuthOptions = {
   pages: { signIn: '/login' },
   session: { strategy: 'jwt', maxAge: 7 * 24 * 60 * 60 },
   secret: NEXTAUTH_SECRET,
-};
+} as AuthOptions;
