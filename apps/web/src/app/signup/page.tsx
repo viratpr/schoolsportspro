@@ -46,8 +46,9 @@ export default function SignupPage() {
 
   async function onSubmit(data: FormData) {
     setError(null);
+    let res: Response;
     try {
-      const res = await fetch(`${API_URL}/auth/signup`, {
+      res = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,6 +62,23 @@ export default function SignupPage() {
           city: data.city || undefined,
         }),
       });
+    } catch (e) {
+      if (e instanceof TypeError) {
+        setError(
+          'Could not reach the server. Check your connection, or try again in a few minutes if our systems are busy.',
+        );
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
+      return;
+    }
+
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      setError('The service is temporarily unavailable. Please try again in a few minutes.');
+      return;
+    }
+
+    try {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(typeof json.error === 'string' ? json.error : json.message || 'Signup failed');
@@ -77,8 +95,8 @@ export default function SignupPage() {
       }
       router.push('/app/dashboard');
       router.refresh();
-    } catch (e) {
-      setError('Network error. Is the API running?');
+    } catch {
+      setError('Something went wrong while completing signup. Please try again.');
     }
   }
 
