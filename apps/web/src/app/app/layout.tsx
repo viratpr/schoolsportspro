@@ -31,6 +31,7 @@ export default async function AppLayout({
           <Link href="/app/dashboard" className="text-sm text-muted-foreground hover:text-foreground">📊 Dashboard</Link>
           <Link href="/app/students" className="text-sm text-muted-foreground hover:text-foreground">👥 Students</Link>
           <Link href="/app/competitions" className="text-sm text-muted-foreground hover:text-foreground">🏆 Competitions</Link>
+          <Link href="/app/inventory" className="text-sm text-muted-foreground hover:text-foreground">📦 Inventory</Link>
           <Link href="/app/billing" className="text-sm text-muted-foreground hover:text-foreground">💳 Billing</Link>
           <Link href="/app/settings" className="text-sm text-muted-foreground hover:text-foreground">⚙️ School Profile</Link>
         </nav>
