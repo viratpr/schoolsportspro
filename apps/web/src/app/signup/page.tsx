@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FixedMarketingBackground } from '@/components/marketing/FixedMarketingBackground';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 
@@ -101,12 +102,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-muted/30">
-      <div className="w-full max-w-md flex flex-col gap-4">
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 overflow-hidden">
+      <FixedMarketingBackground />
+      <div className="relative z-10 w-full max-w-md flex flex-col gap-4">
         <Link href="/" className="text-sm text-muted-foreground hover:text-foreground underline inline-flex items-center gap-1">
           ← Back to home
         </Link>
-        <Card className="w-full">
+        <Card className="w-full bg-card/95 backdrop-blur-sm border-white/20 shadow-xl">
         <CardHeader>
           <CardTitle>Create your school account</CardTitle>
           <p className="text-sm text-muted-foreground">Start your free trial. No card required.</p>

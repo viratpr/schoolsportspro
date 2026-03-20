@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import VideoBackground from '@/components/login/VideoBackground';
+import { FixedMarketingBackground } from '@/components/marketing/FixedMarketingBackground';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen w-full relative flex items-center justify-start overflow-hidden">
-      <VideoBackground />
+      <FixedMarketingBackground />
       <div className="relative z-10 w-full max-w-md ml-[8%] lg:ml-[12%] px-4 py-8">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-white/20 shadow-xl">
           <CardHeader>

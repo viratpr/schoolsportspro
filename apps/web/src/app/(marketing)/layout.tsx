@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { FixedMarketingBackground } from '@/components/marketing/FixedMarketingBackground';
 
 const nav = [
   { href: '/features', label: 'Features' },
@@ -27,17 +28,7 @@ export default function MarketingLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col relative">
-      {/* Background image: fixed, full cover, with overlay for readability */}
-      <div
-        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: 'url(/images/school-sports-saas-dashboard-bg-16x9.png)' }}
-        aria-hidden
-      />
-      {/* Light tint so text stays readable; background image remains visible */}
-      <div
-        className="fixed inset-0 -z-10 bg-gradient-to-b from-white/25 via-white/15 to-white/30"
-        aria-hidden
-      />
+      <FixedMarketingBackground />
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Athletic Bharat home">
