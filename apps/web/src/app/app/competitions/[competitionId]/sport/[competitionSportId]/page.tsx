@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import Link from 'next/link';
 import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CategoryTeamsSection } from '@/components/app/CategoryTeamsSection';
 import { getSportSymbol } from '@/lib/sport-symbols';
 
 type Competition = { id: string; name: string };
@@ -28,37 +28,18 @@ type Match = {
   teamB?: { id: string; name: string };
 };
 type MatchesRes = { data: Match[]; byRound: Record<number, Match[]> };
-type CompetitionSport = { id: string; sport: { name: string; sportType: string; scoringModel?: string } };
+type CompetitionSport = {
+  id: string;
+  sport: { name: string; sportType: string; scoringModel?: string };
+  coordinatorName?: string | null;
+  coordinatorPhone?: string | null;
+  coordinatorEmail?: string | null;
+};
 type CategoriesRes = { data: Category[] };
-type ParsedTeamLine = { original: string; name: string; coachName?: string };
-type BulkTeamsResultItem = ParsedTeamLine & { status: 'created' | 'skipped' | 'error'; message?: string };
-type BulkTeamsResult = { items: BulkTeamsResultItem[] };
 
 function assertOk<T>(r: ApiResult<T>): T {
   if (!r.ok) throw new ApiClientError(r.error.message, r.error.statusCode, r.error.code, r.error.details);
   return r.data;
-}
-
-function parseTeamsInput(raw: string): ParsedTeamLine[] {
-  return raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => {
-      const dashSplit = line.split(/[-–—]/);
-      const commaSplit = line.split(',');
-      let name = line;
-      let coachName: string | undefined;
-      if (dashSplit.length >= 2) {
-        name = dashSplit[0].trim();
-        coachName = dashSplit.slice(1).join('-').trim() || undefined;
-      } else if (commaSplit.length >= 2) {
-        name = commaSplit[0].trim();
-        coachName = commaSplit.slice(1).join(',').trim() || undefined;
-      }
-      return { original: line, name, coachName };
-    })
-    .filter((t) => t.name.length > 0);
 }
 
 export default function SportSingleWindowPage() {
@@ -70,8 +51,6 @@ export default function SportSingleWindowPage() {
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;
   const queryClient = useQueryClient();
-  const [showMultiInput, setShowMultiInput] = useState(false);
-  const [rawTeamsInput, setRawTeamsInput] = useState('');
 
   const { data: competition } = useQuery({
     queryKey: ['tenants', tenantId, 'competitions', competitionId],
@@ -133,32 +112,6 @@ export default function SportSingleWindowPage() {
     },
   });
 
-  const bulkCreateTeams = useMutation({
-    mutationFn: async (input: { teams: ParsedTeamLine[] }): Promise<BulkTeamsResult> => {
-      const items: BulkTeamsResultItem[] = [];
-      for (const t of input.teams) {
-        const res = await apiPost<Team>(`/tenants/${tenantId}/categories/${selectedCategoryId}/teams`, {
-          name: t.name,
-          coachName: t.coachName,
-        });
-        if (!res.ok) {
-          items.push({
-            ...t,
-            status: res.error.statusCode === 409 ? 'skipped' : 'error',
-            message: res.error.message,
-          });
-        } else {
-          items.push({ ...t, status: 'created' });
-        }
-      }
-      return { items };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tenantId, 'categories', selectedCategoryId, 'teams'] });
-    },
-  });
-
-  const parsedTeams = useMemo(() => parseTeamsInput(rawTeamsInput), [rawTeamsInput]);
   const isTeam = category?.format === 'KNOCKOUT';
   const isIndividual = category?.format === 'INDIVIDUAL';
 
@@ -230,66 +183,14 @@ export default function SportSingleWindowPage() {
                   <p className="text-xs text-muted-foreground border-l-2 border-muted pl-2">
                     Step 1: Add teams → Step 2: Generate bracket → Step 3: Play matches and record scores
                   </p>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Teams</CardTitle>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm text-muted-foreground">{teamsData?.data?.length ?? 0} teams</p>
-                        <Button variant="outline" size="sm" onClick={() => setShowMultiInput((v) => !v)}>
-                          {showMultiInput ? 'Hide multiple teams' : 'Add multiple teams'}
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {teamsData?.data?.map((t) => (
-                        <Link
-                          key={t.id}
-                          href={`/app/competition-sports/${competitionSportId}/categories/${selectedCategoryId}/teams/${t.id}`}
-                          className="flex justify-between items-center hover:bg-muted rounded-md px-2 py-1 transition-colors"
-                        >
-                          <span>{t.name}{t.coachName ? ` (${t.coachName})` : ''}</span>
-                          {typeof t._count?.members === 'number' && (
-                            <span className="text-xs text-muted-foreground">
-                              {t._count.members} member{t._count.members === 1 ? '' : 's'}
-                            </span>
-                          )}
-                        </Link>
-                      ))}
-                      {showMultiInput && (
-                        <div className="mt-4 space-y-3">
-                          <p className="text-xs text-muted-foreground">
-                            One team per line. Optional coach after dash or comma.
-                          </p>
-                          <textarea
-                            className="w-full min-h-[100px] text-sm border rounded-md px-2 py-1 bg-background"
-                            value={rawTeamsInput}
-                            onChange={(e) => setRawTeamsInput(e.target.value)}
-                            placeholder="Team A&#10;Team B - Coach Name"
-                          />
-                          {parsedTeams.length > 0 && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() => bulkCreateTeams.mutate({ teams: parsedTeams })}
-                                disabled={bulkCreateTeams.isPending}
-                              >
-                                {bulkCreateTeams.isPending ? 'Creating...' : `Create ${parsedTeams.length} teams`}
-                              </Button>
-                              {bulkCreateTeams.data && (
-                                <p className="text-xs text-muted-foreground">
-                                  Created: {bulkCreateTeams.data.items.filter((i) => i.status === 'created').length}
-                                  {' · '}Skipped: {bulkCreateTeams.data.items.filter((i) => i.status === 'skipped').length}
-                                  {bulkCreateTeams.data.items.some((i) => i.status === 'error') && (
-                                    <> · Errors: {bulkCreateTeams.data.items.filter((i) => i.status === 'error').length}</>
-                                  )}
-                                </p>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                  {selectedCategoryId && (
+                    <CategoryTeamsSection
+                      tenantId={tenantId}
+                      categoryId={selectedCategoryId}
+                      competitionSportId={competitionSportId}
+                      teams={teamsData?.data}
+                    />
+                  )}
 
                   <div>
                     <Button

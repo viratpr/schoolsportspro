@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import Link from 'next/link';
 import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CategoryTeamsSection } from '@/components/app/CategoryTeamsSection';
 
 type Category = {
   id: string;
@@ -29,58 +29,9 @@ type Match = {
 };
 type MatchesRes = { data: Match[]; byRound: Record<number, Match[]> };
 
-type ParsedTeamLine = {
-  original: string;
-  name: string;
-  coachName?: string;
-};
-
-type BulkTeamsInput = {
-  teams: ParsedTeamLine[];
-};
-
-type BulkTeamsResultItem = ParsedTeamLine & {
-  status: 'created' | 'skipped' | 'error';
-  message?: string;
-};
-
-type BulkTeamsResult = {
-  items: BulkTeamsResultItem[];
-};
-
 function assertOk<T>(r: ApiResult<T>): T {
   if (!r.ok) throw new ApiClientError(r.error.message, r.error.statusCode, r.error.code, r.error.details);
   return r.data;
-}
-
-function parseTeamsInput(raw: string): ParsedTeamLine[] {
-  return raw
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => {
-      // Support "Team - Coach", "Team — Coach", or comma-separated "Team, Coach"
-      const dashSplit = line.split(/[-–—]/);
-      const commaSplit = line.split(',');
-
-      let name = line;
-      let coachName: string | undefined;
-
-      if (dashSplit.length >= 2) {
-        name = dashSplit[0].trim();
-        coachName = dashSplit.slice(1).join('-').trim() || undefined;
-      } else if (commaSplit.length >= 2) {
-        name = commaSplit[0].trim();
-        coachName = commaSplit.slice(1).join(',').trim() || undefined;
-      }
-
-      return {
-        original: line,
-        name,
-        coachName,
-      };
-    })
-    .filter((t) => t.name.length > 0);
 }
 
 export default function CategoryDetailPage() {
@@ -118,40 +69,6 @@ export default function CategoryDetailPage() {
     },
   });
 
-  const bulkCreateTeams = useMutation({
-    mutationFn: async (input: BulkTeamsInput): Promise<BulkTeamsResult> => {
-      const items: BulkTeamsResultItem[] = [];
-      for (const t of input.teams) {
-        const res = await apiPost<Team>(`/tenants/${tenantId}/categories/${categoryId}/teams`, {
-          name: t.name,
-          coachName: t.coachName,
-        });
-        if (!res.ok) {
-          const status = res.error.statusCode === 409 ? 'skipped' : 'error';
-          items.push({
-            ...t,
-            status,
-            message: res.error.message,
-          });
-        } else {
-          items.push({
-            ...t,
-            status: 'created',
-          });
-        }
-      }
-      return { items };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [tenantId, 'categories', categoryId, 'teams'] });
-    },
-  });
-
-  const [showMultiInput, setShowMultiInput] = useState(false);
-  const [rawTeamsInput, setRawTeamsInput] = useState('');
-
-  const parsedTeams = useMemo(() => parseTeamsInput(rawTeamsInput), [rawTeamsInput]);
-
   const isTeam = category?.format === 'KNOCKOUT';
   const isIndividual = category?.format === 'INDIVIDUAL';
 
@@ -179,97 +96,14 @@ export default function CategoryDetailPage() {
           <p className="text-xs text-muted-foreground mb-4 border-l-2 border-muted pl-2">
             Step 1: Add teams (single or multiple) → Step 2: Generate knockout bracket → Step 3: Use the fight table / schedule to play and record matches
           </p>
-          <Card className="mb-4">
-            <CardHeader>
-              <CardTitle>Teams</CardTitle>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm text-muted-foreground">{teamsData?.data?.length ?? 0} teams</p>
-                <Button variant="outline" size="sm" onClick={() => setShowMultiInput((v) => !v)}>
-                  {showMultiInput ? 'Hide multiple teams' : 'Add multiple teams'}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {teamsData?.data?.map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/app/competition-sports/${competitionSportId}/categories/${categoryId}/teams/${t.id}`}
-                  className="flex justify-between items-center hover:bg-muted rounded-md px-2 py-1 transition-colors"
-                >
-                  <span>{t.name}{t.coachName ? ` (${t.coachName})` : ''}</span>
-                  {typeof t._count?.members === 'number' && (
-                    <span className="text-xs text-muted-foreground">
-                      {t._count.members} member{t._count.members === 1 ? '' : 's'}
-                    </span>
-                  )}
-                </Link>
-              ))}
-              {showMultiInput && (
-                <div className="mt-4 space-y-3">
-                  <p className="text-xs text-muted-foreground">
-                    Paste or type one team per line. You can optionally add a coach name after a dash or comma.
-                    <br />
-                    Examples: &quot;Blue House&quot;, &quot;Red House - Coach Mehta&quot;, &quot;Green House, Coach Singh&quot;.
-                  </p>
-                  <textarea
-                    className="w-full min-h-[120px] text-sm border rounded-md px-2 py-1 bg-background"
-                    value={rawTeamsInput}
-                    onChange={(e) => setRawTeamsInput(e.target.value)}
-                    placeholder="Team A&#10;Team B - Coach Name&#10;Team C, Coach Name"
-                  />
-                  {parsedTeams.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        Preview ({parsedTeams.length} teams to create):
-                      </p>
-                      <div className="border rounded-md divide-y">
-                        {parsedTeams.map((t) => (
-                          <div key={t.original} className="flex items-center justify-between px-2 py-1 text-sm">
-                            <span>{t.name}</span>
-                            <span className="text-muted-foreground">
-                              {t.coachName ? t.coachName : 'No coach'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => bulkCreateTeams.mutate({ teams: parsedTeams })}
-                        disabled={bulkCreateTeams.isPending || parsedTeams.length === 0}
-                      >
-                        {bulkCreateTeams.isPending ? 'Creating teams...' : 'Create teams'}
-                      </Button>
-                      {bulkCreateTeams.data && (
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <p>
-                            Created:{' '}
-                            {bulkCreateTeams.data.items.filter((i) => i.status === 'created').length}
-                            {' · '}
-                            Skipped (duplicates):{' '}
-                            {bulkCreateTeams.data.items.filter((i) => i.status === 'skipped').length}
-                            {' · '}
-                            Errors:{' '}
-                            {bulkCreateTeams.data.items.filter((i) => i.status === 'error').length}
-                          </p>
-                          {bulkCreateTeams.data.items.some((i) => i.status === 'error') && (
-                            <ul className="list-disc pl-4">
-                              {bulkCreateTeams.data.items
-                                .filter((i) => i.status === 'error')
-                                .map((i) => (
-                                  <li key={i.original}>
-                                    {i.original}: {i.message}
-                                  </li>
-                                ))}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="mb-4">
+            <CategoryTeamsSection
+              tenantId={tenantId}
+              categoryId={categoryId}
+              competitionSportId={competitionSportId}
+              teams={teamsData?.data}
+            />
+          </div>
           <div className="mb-4">
             <Button
               onClick={() => generateBracket.mutate()}

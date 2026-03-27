@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.js';
-import { enableSportSchema } from '../schemas/tenant.js';
+import { enableSportSchema, updateCompetitionSportSchema } from '../schemas/tenant.js';
 import { tenantIdParam, competitionIdParam, competitionSportIdParam } from '../schemas/common.js';
-import { notFound, badRequest } from '../lib/errors.js';
+import { notFound } from '../lib/errors.js';
 import { Role } from '@bharatathlete/db';
 import { getTenantEntitlements, getEnabledSportsCountForCompetition } from '../lib/entitlements.js';
 
@@ -64,7 +64,13 @@ export default async function competitionSportsRoutes(app: FastifyInstance) {
       if (existing) {
         const updated = await prisma.competitionSport.update({
           where: { id: existing.id },
-          data: { enabled: body.enabled, overriddenRulesText: body.overriddenRulesText },
+          data: {
+            enabled: body.enabled,
+            overriddenRulesText: body.overriddenRulesText,
+            ...(body.coordinatorName !== undefined && { coordinatorName: body.coordinatorName }),
+            ...(body.coordinatorPhone !== undefined && { coordinatorPhone: body.coordinatorPhone }),
+            ...(body.coordinatorEmail !== undefined && { coordinatorEmail: body.coordinatorEmail }),
+          },
         });
         return reply.send(updated);
       }
@@ -90,9 +96,40 @@ export default async function competitionSportsRoutes(app: FastifyInstance) {
           overriddenRulesText: body.overriddenRulesText,
           templateSnapshotJson: (sport.scorecardTemplateJson ?? undefined) as object | undefined,
           templateVersion: sport.templateVersion ?? undefined,
+          coordinatorName: body.coordinatorName,
+          coordinatorPhone: body.coordinatorPhone,
+          coordinatorEmail: body.coordinatorEmail,
         },
       });
       return reply.status(201).send(cs);
+    }
+  );
+
+  app.patch<{ Params: { tenantId: string; competitionSportId: string } }>(
+    '/tenants/:tenantId/competition-sports/:competitionSportId',
+    async (request, reply) => {
+      const { tenantId } = tenantIdParam.parse(request.params);
+      const { competitionSportId } = competitionSportIdParam.parse(request.params);
+      requireTenantAccess(request, tenantId);
+      requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR]);
+      const cs = await prisma.competitionSport.findFirst({
+        where: { id: competitionSportId, tenantId },
+      });
+      if (!cs) throw notFound('Competition sport not found');
+      const body = updateCompetitionSportSchema.parse(request.body);
+      const data: {
+        coordinatorName?: string | null;
+        coordinatorPhone?: string | null;
+        coordinatorEmail?: string | null;
+      } = {};
+      if (body.coordinatorName !== undefined) data.coordinatorName = body.coordinatorName;
+      if (body.coordinatorPhone !== undefined) data.coordinatorPhone = body.coordinatorPhone;
+      if (body.coordinatorEmail !== undefined) data.coordinatorEmail = body.coordinatorEmail;
+      const updated = await prisma.competitionSport.update({
+        where: { id: competitionSportId },
+        data,
+      });
+      return reply.send(updated);
     }
   );
 }

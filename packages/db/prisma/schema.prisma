@@ -250,6 +250,9 @@ model CompetitionSport {
   overriddenRulesText  String?
   templateSnapshotJson Json?
   templateVersion      Int?
+  coordinatorName      String?
+  coordinatorPhone     String?
+  coordinatorEmail     String?
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
   competition          Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)

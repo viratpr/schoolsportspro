@@ -38,11 +38,61 @@ export const createCompetitionSchema = z.object({
 
 export const updateCompetitionSchema = createCompetitionSchema.partial();
 
-export const enableSportSchema = z.object({
-  sportId: z.string().cuid(),
-  enabled: z.boolean().optional().default(true),
-  overriddenRulesText: z.string().optional(),
-});
+const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+export const enableSportSchema = z
+  .object({
+    sportId: z.string().cuid(),
+    enabled: z.boolean().optional().default(true),
+    overriddenRulesText: z.string().optional(),
+    coordinatorName: z.string().max(200).optional(),
+    coordinatorPhone: z.string().max(40).optional(),
+    coordinatorEmail: z.string().max(320).optional(),
+  })
+  .transform((b) => ({
+    ...b,
+    coordinatorName: b.coordinatorName?.trim() ? b.coordinatorName.trim() : undefined,
+    coordinatorPhone: b.coordinatorPhone?.trim() ? b.coordinatorPhone.trim() : undefined,
+    coordinatorEmail: b.coordinatorEmail?.trim() ? b.coordinatorEmail.trim() : undefined,
+  }))
+  .superRefine((b, ctx) => {
+    if (b.coordinatorEmail && !emailOk(b.coordinatorEmail)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid coordinator email', path: ['coordinatorEmail'] });
+    }
+  });
+
+export const updateCompetitionSportSchema = z
+  .object({
+    coordinatorName: z.string().max(200).nullable().optional(),
+    coordinatorPhone: z.string().max(40).nullable().optional(),
+    coordinatorEmail: z.string().max(320).nullable().optional(),
+  })
+  .strict()
+  .transform((b) => ({
+    coordinatorName:
+      b.coordinatorName === undefined
+        ? undefined
+        : b.coordinatorName === null
+          ? null
+          : b.coordinatorName.trim() || null,
+    coordinatorPhone:
+      b.coordinatorPhone === undefined
+        ? undefined
+        : b.coordinatorPhone === null
+          ? null
+          : b.coordinatorPhone.trim() || null,
+    coordinatorEmail:
+      b.coordinatorEmail === undefined
+        ? undefined
+        : b.coordinatorEmail === null
+          ? null
+          : b.coordinatorEmail.trim() || null,
+  }))
+  .superRefine((b, ctx) => {
+    if (b.coordinatorEmail && !emailOk(b.coordinatorEmail)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid coordinator email', path: ['coordinatorEmail'] });
+    }
+  });
 
 const slugRegex = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 const passwordStrong = z
