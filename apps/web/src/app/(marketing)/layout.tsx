@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { FixedMarketingBackground } from '@/components/marketing/FixedMarketingBackground';
+import { AbMarketingAssistant } from '@/components/marketing/AbMarketingAssistant';
 
 const nav = [
   { href: '/features', label: 'Features' },
@@ -80,6 +81,7 @@ export default function MarketingLayout({
           </p>
         </div>
       </footer>
+      <AbMarketingAssistant />
     </div>
   );
 }
