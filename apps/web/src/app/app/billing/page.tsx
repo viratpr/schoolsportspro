@@ -77,7 +77,16 @@ export default function BillingPage() {
         });
         const createJson = await createRes.json();
         if (!createRes.ok) {
-          alert(createJson.error ?? 'Failed to create order');
+          const msg =
+            typeof createJson.error === 'string' ? createJson.error : 'Failed to create order';
+          const hint = typeof createJson.hint === 'string' ? createJson.hint : '';
+          const present = createJson.razorpayEnvPresent;
+          let full = msg;
+          if (hint) full += `\n\n${hint}`;
+          if (present && typeof present === 'object') {
+            full += `\n\nEnv names detected (non-secret):\n${JSON.stringify(present, null, 2)}`;
+          }
+          alert(full);
           return;
         }
         const { orderId, amount, currency, keyId } = createJson;

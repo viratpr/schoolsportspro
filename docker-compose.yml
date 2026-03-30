@@ -1,3 +1,8 @@
+# Copy `.env.example` → `.env` on the server and fill secrets (file is gitignored).
+# One file can drive API + web: JWT_SECRET, Razorpay keys, public URLs.
+#
+# NextAuth uses NEXTAUTH_SECRET; if you omit it, web falls back to JWT_SECRET so you can use one value.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -30,7 +35,7 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://bharatathlete:bharatathlete@postgres:5432/bharatathlete
-      JWT_SECRET: change-me-in-production
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       PORT: 3001
       REDIS_URL: redis://redis:6379
     depends_on:
@@ -42,22 +47,24 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        # Baked into client JS bundle — must be reachable from the browser
-        NEXT_PUBLIC_API_URL: http://localhost:3001
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
     ports:
       - "3000:3000"
     environment:
-      # Overrides NEXT_PUBLIC_API_URL at runtime for server-side code (NextAuth login calls)
-      NEXT_PUBLIC_API_URL: http://api:3001
-      NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: change-me-in-production
-      APP_URL: http://localhost:3000
-      # Billing: required at container runtime (do not bake secrets into the image at build)
+      # Prisma (billing routes) — must reach postgres inside the compose network
+      DATABASE_URL: postgresql://bharatathlete:bharatathlete@postgres:5432/bharatathlete
+      # Browser + server fetch to API (use your public API URL in production)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3001}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # Same as API by default so one secret in .env is enough; override with NEXTAUTH_SECRET if you want
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-${JWT_SECRET:-change-me-in-production}}
+      APP_URL: ${APP_URL:-http://localhost:3000}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-${RAZORPAY_SECRET:-}}
       NEXT_PUBLIC_RAZORPAY_KEY_ID: ${NEXT_PUBLIC_RAZORPAY_KEY_ID:-}
     depends_on:
       - api
+      - postgres
 
 volumes:
   pgdata: {}

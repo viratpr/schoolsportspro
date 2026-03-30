@@ -4,9 +4,11 @@ import crypto from 'node:crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { type BillingPlanKey, PLAN_DETAILS } from '@/lib/billing-pricing';
-import { readServerEnv } from '@/lib/server-env';
+import { razorpayEnvPresence, razorpayKeySecret } from '@/lib/server-env';
 
 export type VerifyPlan = BillingPlanKey;
+
+export const runtime = 'nodejs';
 
 function verifyPaymentSignature(
   keySecret: string,
@@ -25,8 +27,19 @@ export async function POST(request: Request) {
   const tenantId = (session.user as { tenantId?: string }).tenantId;
   if (!tenantId) return NextResponse.json({ error: 'No tenant' }, { status: 400 });
 
-  const keySecret = readServerEnv('RAZORPAY_KEY_SECRET');
-  if (!keySecret) return NextResponse.json({ error: 'Razorpay not configured' }, { status: 500 });
+  const keySecret = razorpayKeySecret();
+  if (!keySecret) {
+    return NextResponse.json(
+      {
+        error: 'Razorpay not configured',
+        missing: { keySecret: true },
+        razorpayEnvPresent: razorpayEnvPresence(),
+        hint:
+          'Set RAZORPAY_KEY_SECRET or RAZORPAY_SECRET on the **Next.js** server environment and redeploy.',
+      },
+      { status: 500 }
+    );
+  }
 
   let body: { razorpay_payment_id?: string; razorpay_order_id?: string; razorpay_signature?: string; plan?: string };
   try {

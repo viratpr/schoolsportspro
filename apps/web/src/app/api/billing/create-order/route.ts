@@ -4,16 +4,12 @@ import Razorpay from 'razorpay';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { inclusivePaiseForPlan, type BillingPlanKey, PLAN_DETAILS } from '@/lib/billing-pricing';
-import { readServerEnv } from '@/lib/server-env';
+import { razorpayEnvPresence, razorpayKeyId, razorpayKeySecret } from '@/lib/server-env';
 
 type CreateOrderPlan = BillingPlanKey;
 
-function razorpayKeys() {
-  const keyId =
-    readServerEnv('NEXT_PUBLIC_RAZORPAY_KEY_ID') ?? readServerEnv('RAZORPAY_KEY_ID');
-  const keySecret = readServerEnv('RAZORPAY_KEY_SECRET');
-  return { keyId, keySecret };
-}
+/** Node-only (Prisma); ensures keys are read from the real server process env. */
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -21,18 +17,20 @@ export async function POST(request: Request) {
   const tenantId = (session.user as { tenantId?: string }).tenantId;
   if (!tenantId) return NextResponse.json({ error: 'No tenant' }, { status: 400 });
 
-  const { keyId, keySecret } = razorpayKeys();
+  const keyId = razorpayKeyId();
+  const keySecret = razorpayKeySecret();
 
   if (!keySecret || !keyId) {
     return NextResponse.json(
       {
         error: 'Razorpay not configured',
         missing: {
-          RAZORPAY_KEY_SECRET: !keySecret,
+          keySecret: !keySecret,
           keyId: !keyId,
         },
+        razorpayEnvPresent: razorpayEnvPresence(),
         hint:
-          'Local: repo root .env or apps/web/.env.local, then restart Next. Production: set RAZORPAY_KEY_SECRET and RAZORPAY_KEY_ID (or NEXT_PUBLIC_RAZORPAY_KEY_ID) on the host (Vercel/project env, Docker/K8s runtime env — not only at build time).',
+          'Set RAZORPAY_KEY_SECRET (or RAZORPAY_SECRET) and RAZORPAY_KEY_ID or NEXT_PUBLIC_RAZORPAY_KEY_ID for the **web** process. Local: repo root .env. Production: hosting “Environment variables” for the Next.js app (not only the Fastify API) and redeploy. Docker: pass -e / compose environment at run time.',
       },
       { status: 500 }
     );
