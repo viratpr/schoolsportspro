@@ -16,6 +16,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { formatInrFromPaise, inclusivePaiseForPlan, PLAN_DETAILS } from '@/lib/billing-pricing';
 
 // Set page metadata for the Next.js app
 export const metadata = {
@@ -30,7 +31,7 @@ export default function PricingPage() {
       {/* Page Heading */}
       <h1 className="text-3xl font-bold text-center mb-4">Pricing</h1>
       <p className="text-center text-muted-foreground max-w-xl mx-auto mb-12">
-        Start with a free trial. No card required. Choose Tournament Pass or Annual Pro when you’re ready.
+        Start with a free trial. No card required. Paid prices below are what you pay at checkout: base catalog price plus 18% GST (included in the figure).
       </p>
 
       {/* Responsive pricing grid */}
@@ -62,7 +63,11 @@ export default function PricingPage() {
           <CardHeader>
             <h2 className="text-xl font-semibold">Tournament Pass</h2>
             <p className="text-3xl font-bold mt-2">
-              ₹4,999 <span className="text-sm font-normal text-muted-foreground">/ 3 months</span>
+              {formatInrFromPaise(inclusivePaiseForPlan('TOURNAMENT_PASS'))}{' '}
+              <span className="text-sm font-normal text-muted-foreground">/ 3 months</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatInrFromPaise(PLAN_DETAILS.TOURNAMENT_PASS.basePaise)} + 18% GST included
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -84,7 +89,11 @@ export default function PricingPage() {
             <p className="text-xs font-medium text-primary uppercase tracking-wide">Best value</p>
             <h2 className="text-xl font-semibold">Annual Pro</h2>
             <p className="text-3xl font-bold mt-2">
-              ₹9,999 <span className="text-sm font-normal text-muted-foreground">/ 12 months</span>
+              {formatInrFromPaise(inclusivePaiseForPlan('ANNUAL_PRO'))}{' '}
+              <span className="text-sm font-normal text-muted-foreground">/ 12 months</span>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatInrFromPaise(PLAN_DETAILS.ANNUAL_PRO.basePaise)} + 18% GST included
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -95,7 +104,7 @@ export default function PricingPage() {
               <li>• Global ranking</li>
               <li>• Priority support</li>
             </ul>
-            <Link href="/signup" className="block">
+            <Link href="/signup?plan=ANNUAL_PRO" className="block">
               <Button className="w-full">Get Annual Pro</Button>
             </Link>
           </CardContent>

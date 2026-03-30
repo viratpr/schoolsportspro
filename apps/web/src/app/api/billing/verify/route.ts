@@ -3,18 +3,16 @@ import { getServerSession } from 'next-auth';
 import crypto from 'node:crypto';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { type BillingPlanKey, PLAN_DETAILS } from '@/lib/billing-pricing';
 
-const keySecret = process.env.RAZORPAY_KEY_SECRET;
+export type VerifyPlan = BillingPlanKey;
 
-const PLANS = {
-  TOURNAMENT_PASS: { months: 3 },
-  ANNUAL_PRO: { months: 12 },
-} as const;
-
-export type VerifyPlan = keyof typeof PLANS;
-
-function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
-  if (!keySecret) return false;
+function verifyPaymentSignature(
+  keySecret: string,
+  orderId: string,
+  paymentId: string,
+  signature: string
+): boolean {
   const body = orderId + '|' + paymentId;
   const expected = crypto.createHmac('sha256', keySecret).update(body).digest('hex');
   return expected === signature;
@@ -26,6 +24,7 @@ export async function POST(request: Request) {
   const tenantId = (session.user as { tenantId?: string }).tenantId;
   if (!tenantId) return NextResponse.json({ error: 'No tenant' }, { status: 400 });
 
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
   if (!keySecret) return NextResponse.json({ error: 'Razorpay not configured' }, { status: 500 });
 
   let body: { razorpay_payment_id?: string; razorpay_order_id?: string; razorpay_signature?: string; plan?: string };
@@ -38,13 +37,13 @@ export async function POST(request: Request) {
   if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !plan) {
     return NextResponse.json({ error: 'Missing payment details' }, { status: 400 });
   }
-  if (!PLANS[plan as VerifyPlan]) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+  if (!(plan in PLAN_DETAILS)) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
 
-  if (!verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
+  if (!verifyPaymentSignature(keySecret, razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
     return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 });
   }
 
-  const { months } = PLANS[plan as VerifyPlan];
+  const { months } = PLAN_DETAILS[plan as VerifyPlan];
   const currentPeriodEnd = new Date();
   currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + months);
 

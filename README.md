@@ -117,6 +117,20 @@ pnpm dev:web
 - **School admin:** `admin@demoschool.local` / `School@1234`  
 - **Global sports library:** Cricket, Football, Kabaddi, Basketball, Volleyball, Badminton, Chess, Athletics 100m, Long Jump, Shot Put (with rules and category templates).
 
+### Bootstrap `PLATFORM_ADMIN` in production
+
+Do **not** commit passwords or `DATABASE_URL` to git. From any host that can reach the DB (e.g. **ECS Exec** into the API task, which already has `DATABASE_URL`):
+
+```bash
+cd /app
+export PLATFORM_ADMIN_EMAIL='you@company.com'
+export PLATFORM_ADMIN_PASSWORD='...'
+export PLATFORM_ADMIN_UPGRADE=1   # optional: promote existing user + reset password
+pnpm --filter @bharatathlete/db exec tsx packages/db/scripts/create-platform-admin.ts
+```
+
+Or locally: `pnpm --filter @bharatathlete/db run create-platform-admin` with the same env vars set.
+
 ## Project structure
 
 ```

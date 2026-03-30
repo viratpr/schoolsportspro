@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { apiGet, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatPriceInclGstLabel, PLAN_DETAILS, type BillingPlanKey } from '@/lib/billing-pricing';
 
 type Entitlements = {
   plan: string;
@@ -39,17 +41,23 @@ declare global {
       name: string;
       description?: string;
       prefill?: { email?: string; name?: string };
+      modal?: { ondismiss?: () => void };
       handler: (res: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
     }) => { open: () => void };
   }
 }
 
+/** Set on signup when user chooses Annual Pro; optional `?checkout=ANNUAL_PRO` on this page. */
+const BILLING_CHECKOUT_KEY = 'billing_open_checkout';
+
 export default function BillingPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const autoCheckoutStarted = useRef(false);
 
   const { data: ent } = useQuery({
     queryKey: ['tenants', tenantId, 'entitlements'],
@@ -58,7 +66,7 @@ export default function BillingPage() {
   });
 
   const handlePay = useCallback(
-    async (plan: 'TOURNAMENT_PASS' | 'ANNUAL_PRO') => {
+    async (plan: BillingPlanKey) => {
       if (!tenantId) return;
       setLoadingPlan(plan);
       try {
@@ -96,8 +104,11 @@ export default function BillingPage() {
           order_id: orderId,
           currency,
           name: 'Athletic Bharat',
-          description: plan === 'TOURNAMENT_PASS' ? 'Tournament Pass (3 months)' : 'Annual Pro (12 months)',
+          description: PLAN_DETAILS[plan].checkoutDescription,
           prefill: { email: user?.email ?? undefined, name: user?.name ?? undefined },
+          modal: {
+            ondismiss: () => setLoadingPlan(null),
+          },
           handler: async (res) => {
             const verifyRes = await fetch('/api/billing/verify', {
               method: 'POST',
@@ -125,6 +136,21 @@ export default function BillingPage() {
     },
     [tenantId, session?.user, queryClient]
   );
+
+  useEffect(() => {
+    if (!tenantId || autoCheckoutStarted.current) return;
+
+    const fromStorage =
+      typeof window !== 'undefined' && sessionStorage.getItem(BILLING_CHECKOUT_KEY) === 'ANNUAL_PRO';
+    const fromQuery = searchParams.get('checkout') === 'ANNUAL_PRO';
+    if (!fromStorage && !fromQuery) return;
+
+    autoCheckoutStarted.current = true;
+    if (fromStorage) sessionStorage.removeItem(BILLING_CHECKOUT_KEY);
+    if (fromQuery) router.replace('/app/billing', { scroll: false });
+
+    void handlePay('ANNUAL_PRO');
+  }, [tenantId, searchParams, handlePay, router]);
 
   const planLabel = ent?.plan ? PLAN_LABELS[ent.plan] ?? ent.plan : '—';
   const isPaid = ent?.isProActive ?? false;
@@ -159,16 +185,30 @@ export default function BillingPage() {
           {showUpgrade && (
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => handlePay('TOURNAMENT_PASS')} disabled={!!loadingPlan}>
-                {loadingPlan === 'TOURNAMENT_PASS' ? 'Opening…' : 'Get Tournament Pass (₹4,999 / 3 months)'}
+                {loadingPlan === 'TOURNAMENT_PASS' ? 'Opening…' : `Get Tournament Pass (${formatPriceInclGstLabel('TOURNAMENT_PASS')})`}
               </Button>
               <Button onClick={() => handlePay('ANNUAL_PRO')} disabled={!!loadingPlan}>
-                {loadingPlan === 'ANNUAL_PRO' ? 'Opening…' : 'Get Annual Pro (₹9,999 / 12 months)'}
+                {loadingPlan === 'ANNUAL_PRO' ? 'Opening…' : `Get Annual Pro (${formatPriceInclGstLabel('ANNUAL_PRO')})`}
               </Button>
             </div>
           )}
           {isPaid && (
             <p className="text-sm text-muted-foreground">For billing help or to change plan, contact support.</p>
           )}
+          {process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_PAGE_URL ? (
+            <p className="text-xs text-muted-foreground border-t pt-4 mt-4">
+              Payments are processed by Razorpay. Public payment page:{' '}
+              <a
+                href={process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_PAGE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-foreground"
+              >
+                {process.env.NEXT_PUBLIC_RAZORPAY_PAYMENT_PAGE_URL.replace(/^https?:\/\//, '')}
+              </a>
+              . Use the upgrade buttons above so your payment is linked to this school account.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </div>

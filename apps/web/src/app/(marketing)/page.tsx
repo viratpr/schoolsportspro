@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatInrFromPaise, inclusivePaiseForPlan, PLAN_DETAILS } from '@/lib/billing-pricing';
 
 export const metadata = {
   title: 'Athletic Bharat — School Sports Tournament Management',
@@ -134,9 +135,15 @@ export default async function HomePage() {
           <Card className="border-primary">
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold">Annual Pro</h3>
-              <p className="text-2xl font-bold mt-2">₹9,999 <span className="text-sm font-normal text-muted-foreground">/ 12 months</span></p>
+              <p className="text-2xl font-bold mt-2">
+                {formatInrFromPaise(inclusivePaiseForPlan('ANNUAL_PRO'))}{' '}
+                <span className="text-sm font-normal text-muted-foreground">/ 12 months</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatInrFromPaise(PLAN_DETAILS.ANNUAL_PRO.basePaise)} + 18% GST included
+              </p>
               <p className="text-sm text-muted-foreground mt-2">Public URL for live score view, Certificate generation, global ranking. Best value.</p>
-              <Link href="/signup" className="inline-block mt-4">
+              <Link href="/signup?plan=ANNUAL_PRO" className="inline-block mt-4">
                 <Button className="w-full">Get Annual Pro</Button>
               </Link>
             </CardContent>

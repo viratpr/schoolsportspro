@@ -1,5 +1,7 @@
 /** Facts aligned with marketing pages (features, pricing). Edit here to update AB’s answers. */
 
+import { formatPriceInclGstLabel } from '@/lib/billing-pricing';
+
 export const SUPPORT_EMAIL = 'support@athleticbharat.com';
 
 export const WELCOME_MESSAGE = `Hi — I’m AB, your guide for Athletic Bharat. I can explain trials, pricing, features, or point you to a demo. Use the buttons below or ask me anything in plain language.`;
@@ -29,9 +31,13 @@ const RULES: Rule[] = [
       'The free trial runs 30 days with full access: brackets, scorecards, unlimited categories and teams, up to 2 sports per competition. No card needed.',
   },
   {
-    keywords: ['price', 'pricing', 'cost', 'pay', 'rupee', 'plan', '₹', '4999', '9999'],
+    keywords: ['price', 'pricing', 'cost', 'pay', 'rupee', 'plan', '₹', '4999', '9999', 'gst', 'tax'],
     reply:
-      'Free trial: ₹0 for the first month. Tournament Pass: ₹4,999 for 3 months (certificates, full season). Annual Pro: ₹9,999 for 12 months — best value, with public live score URL, certificates, global ranking, and priority support. See /pricing for details.',
+      'Free trial: ₹0 for the first month. Paid plans are charged with 18% GST on top of the catalog price (amount at checkout includes GST): Tournament Pass ' +
+      formatPriceInclGstLabel('TOURNAMENT_PASS') +
+      ' for 3 months; Annual Pro ' +
+      formatPriceInclGstLabel('ANNUAL_PRO') +
+      ' for 12 months (best value: live score URL, certificates, global ranking, priority support). See /pricing.',
   },
   {
     keywords: ['demo', 'book', 'sales', 'talk', 'call'],

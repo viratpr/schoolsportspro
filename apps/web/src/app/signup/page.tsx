@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
@@ -38,8 +38,14 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export default function SignupPage() {
+const BILLING_CHECKOUT_KEY = 'billing_open_checkout';
+
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const postSignupPlan =
+    searchParams.get('plan') === 'ANNUAL_PRO' ? 'ANNUAL_PRO' : null;
+
   const [error, setError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -94,6 +100,17 @@ export default function SignupPage() {
         router.push('/signup/success');
         return;
       }
+
+      if (postSignupPlan === 'ANNUAL_PRO' && typeof window !== 'undefined') {
+        sessionStorage.setItem(BILLING_CHECKOUT_KEY, 'ANNUAL_PRO');
+      }
+
+      if (postSignupPlan === 'ANNUAL_PRO') {
+        router.replace('/app/billing');
+        router.refresh();
+        return;
+      }
+
       router.push('/app/dashboard');
       router.refresh();
     } catch {
@@ -111,7 +128,11 @@ export default function SignupPage() {
         <Card className="w-full bg-card/95 backdrop-blur-sm border-white/20 shadow-xl">
         <CardHeader>
           <CardTitle>Create your school account</CardTitle>
-          <p className="text-sm text-muted-foreground">Start your free trial. No card required.</p>
+          <p className="text-sm text-muted-foreground">
+            {postSignupPlan === 'ANNUAL_PRO'
+              ? 'Start your free trial (no card). After you create your account, we’ll open secure payment for Annual Pro (Razorpay).'
+              : 'Start your free trial. No card required.'}
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -164,5 +185,20 @@ export default function SignupPage() {
       </Card>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-muted-foreground relative">
+          <FixedMarketingBackground />
+          <span className="relative z-10">Loading…</span>
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
   );
 }

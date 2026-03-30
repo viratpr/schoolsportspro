@@ -8,14 +8,15 @@
   "scripts": {
     "prisma:generate": "prisma generate",
     "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
-    "prisma:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts"
+    "prisma:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "create-platform-admin": "tsx scripts/create-platform-admin.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0"
+    "@prisma/client": "^6.0.0",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "bcryptjs": "^2.4.3",
     "dotenv-cli": "^7.4.0",
     "prisma": "^6.0.0",
     "tsx": "^4.19.0",
