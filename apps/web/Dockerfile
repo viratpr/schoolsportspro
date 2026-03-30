@@ -18,6 +18,8 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY apps/web apps/web
+# Razorpay/DB secrets are not available here by design — `next build` must not require them.
+# Pass RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET (and optional NEXT_PUBLIC_RAZORPAY_KEY_ID) at `docker run` / compose.
 RUN pnpm --filter @bharatathlete/web build
 
 EXPOSE 3000

@@ -4,13 +4,14 @@ import Razorpay from 'razorpay';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { inclusivePaiseForPlan, type BillingPlanKey, PLAN_DETAILS } from '@/lib/billing-pricing';
+import { readServerEnv } from '@/lib/server-env';
 
 type CreateOrderPlan = BillingPlanKey;
 
 function razorpayKeys() {
-  // Read at request time — top-level `process.env` in Route Handlers can be baked in as empty during bundling.
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const keyId =
+    readServerEnv('NEXT_PUBLIC_RAZORPAY_KEY_ID') ?? readServerEnv('RAZORPAY_KEY_ID');
+  const keySecret = readServerEnv('RAZORPAY_KEY_SECRET');
   return { keyId, keySecret };
 }
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
           keyId: !keyId,
         },
         hint:
-          'Set RAZORPAY_KEY_SECRET and RAZORPAY_KEY_ID (or NEXT_PUBLIC_RAZORPAY_KEY_ID for the key only) in the repo root .env or apps/web/.env.local, then restart the Next.js dev server.',
+          'Local: repo root .env or apps/web/.env.local, then restart Next. Production: set RAZORPAY_KEY_SECRET and RAZORPAY_KEY_ID (or NEXT_PUBLIC_RAZORPAY_KEY_ID) on the host (Vercel/project env, Docker/K8s runtime env — not only at build time).',
       },
       { status: 500 }
     );
