@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen w-full relative flex items-center justify-start overflow-hidden">
       <FixedMarketingBackground />
-      <div className="relative z-10 w-full max-w-md ml-[8%] lg:ml-[12%] px-4 py-8">
+      <div className="relative z-10 mx-auto w-full max-w-md max-sm:ml-0 max-sm:mr-0 ml-[8%] mr-auto lg:ml-[12%] px-4 py-8">
         <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-white/20 shadow-xl">
           <CardHeader>
             <CardTitle className="text-xl">Forgot password</CardTitle>

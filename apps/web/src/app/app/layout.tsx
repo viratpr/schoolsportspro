@@ -25,9 +25,22 @@ export default async function AppLayout({
         backgroundPosition: 'center',
       }}
     >
-      <header className="border-b px-4 py-3 flex items-center gap-4 bg-background/60 backdrop-blur-sm">
-        <Link href="/app/dashboard" className="font-semibold">Athletic Bharat</Link>
-        <nav className="flex gap-4">
+      <header className="border-b px-4 py-3 flex items-center gap-2 md:gap-4 bg-background/60 backdrop-blur-sm min-w-0">
+        <Link href="/app/dashboard" className="font-semibold shrink-0">Athletic Bharat</Link>
+        <details className="md:hidden relative shrink-0">
+          <summary className="cursor-pointer rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground list-none [&::-webkit-details-marker]:hidden">
+            Menu
+          </summary>
+          <nav className="absolute left-0 top-full z-50 mt-1 flex min-w-[12rem] flex-col gap-2 rounded-md border bg-background p-3 shadow-lg">
+            <Link href="/app/dashboard" className="text-sm text-muted-foreground hover:text-foreground">📊 Dashboard</Link>
+            <Link href="/app/students" className="text-sm text-muted-foreground hover:text-foreground">👥 Students</Link>
+            <Link href="/app/competitions" className="text-sm text-muted-foreground hover:text-foreground">🏆 Competitions</Link>
+            <Link href="/app/inventory" className="text-sm text-muted-foreground hover:text-foreground">📦 Inventory</Link>
+            <Link href="/app/billing" className="text-sm text-muted-foreground hover:text-foreground">💳 Billing</Link>
+            <Link href="/app/settings" className="text-sm text-muted-foreground hover:text-foreground">⚙️ School Profile</Link>
+          </nav>
+        </details>
+        <nav className="hidden md:flex flex-1 flex-wrap gap-x-4 gap-y-1 justify-center min-w-0">
           <Link href="/app/dashboard" className="text-sm text-muted-foreground hover:text-foreground">📊 Dashboard</Link>
           <Link href="/app/students" className="text-sm text-muted-foreground hover:text-foreground">👥 Students</Link>
           <Link href="/app/competitions" className="text-sm text-muted-foreground hover:text-foreground">🏆 Competitions</Link>
@@ -35,8 +48,8 @@ export default async function AppLayout({
           <Link href="/app/billing" className="text-sm text-muted-foreground hover:text-foreground">💳 Billing</Link>
           <Link href="/app/settings" className="text-sm text-muted-foreground hover:text-foreground">⚙️ School Profile</Link>
         </nav>
-        <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
-          {session.user.email}
+        <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-4 text-sm text-muted-foreground shrink-0">
+          <span className="truncate max-w-[10rem] sm:max-w-[12rem] md:max-w-[16rem] lg:max-w-none">{session.user.email}</span>
           <LogoutButton />
         </div>
       </header>

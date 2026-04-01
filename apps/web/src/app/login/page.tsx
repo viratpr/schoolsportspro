@@ -88,7 +88,7 @@ export default function LoginPage() {
       }}
     >
       {/* Form on the left */}
-      <div className="relative z-10 w-full max-w-md ml-[8%] lg:ml-[12%] px-4 py-8">
+      <div className="relative z-10 mx-auto w-full max-w-md max-sm:ml-0 max-sm:mr-0 ml-[8%] mr-auto lg:ml-[12%] px-4 py-8">
         <Suspense fallback={<div className="text-muted-foreground text-sm">Loading...</div>}>
           <LoginForm />
         </Suspense>
