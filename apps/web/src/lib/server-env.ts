@@ -22,6 +22,9 @@ const RAZORPAY_FLAG_KEYS = [
   'RAZORPAY_KEY_ID',
   'RAZORPAY_KEY_SECRET',
   'RAZORPAY_SECRET',
+  /** Common in Helm / SOPS YAML secret data keys when mirrored into env without remapping. */
+  'razorpay_key_id',
+  'razorpay_key_secret',
 ] as const;
 
 export function razorpayEnvPresence(): Record<string, boolean> {
@@ -35,11 +38,16 @@ export function razorpayEnvPresence(): Record<string, boolean> {
 export function razorpayKeyId(): string | undefined {
   return (
     readServerEnv('NEXT_PUBLIC_RAZORPAY_KEY_ID') ??
-    readServerEnv('RAZORPAY_KEY_ID')
+    readServerEnv('RAZORPAY_KEY_ID') ??
+    readServerEnv('razorpay_key_id')
   );
 }
 
 /** Supports `RAZORPAY_SECRET` — a common typo / alternate name in hosting dashboards. */
 export function razorpayKeySecret(): string | undefined {
-  return readServerEnv('RAZORPAY_KEY_SECRET') ?? readServerEnv('RAZORPAY_SECRET');
+  return (
+    readServerEnv('RAZORPAY_KEY_SECRET') ??
+    readServerEnv('RAZORPAY_SECRET') ??
+    readServerEnv('razorpay_key_secret')
+  );
 }
