@@ -56,10 +56,10 @@ mergeEnvFileIntoProcess(path.join(repoRoot, '.env'));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production',
-  },
+  // Do not use `env` to inject NEXTAUTH_* here: that inlines values at **build** time, so production
+  // images built without NEXTAUTH_URL would bake `localhost` into the client bundle and break
+  // signOut redirects. It would also expose NEXTAUTH_SECRET to browser JS. Read real env at runtime
+  // only (see ECS/task env, local shell, or apps/web/.env for dev).
 };
 
 module.exports = nextConfig;

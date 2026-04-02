@@ -9,7 +9,7 @@ export function LogoutButton() {
       variant="ghost"
       size="sm"
       className="text-muted-foreground hover:text-foreground"
-      onClick={() => signOut({ callbackUrl: '/login' })}
+      onClick={() => signOut({ callbackUrl: `${window.location.origin}/login` })}
     >
       Logout
     </Button>
