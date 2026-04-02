@@ -132,6 +132,8 @@ model Tenant {
   cricketMatches     CricketMatch[]
   settings           TenantSettings?
   subscription       TenantSubscription?
+  inventoryItems     InventoryItem[]
+  inventoryLoans     InventoryLoan[]
 
   @@index([slug])
 }
@@ -215,8 +217,9 @@ model Student {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  teamMembers   TeamMember[]
-  participants  ParticipantEntry[]
+  teamMembers     TeamMember[]
+  participants    ParticipantEntry[]
+  inventoryLoans  InventoryLoan[]
 
   @@unique([tenantId, admissionNo])
   @@index([tenantId, classStandard, section])
@@ -533,4 +536,38 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([tenantId, createdAt])
+}
+
+model InventoryItem {
+  id              String          @id @default(cuid())
+  tenantId        String
+  name            String
+  category        String
+  quantityTotal   Int
+  quantityDamaged Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loans           InventoryLoan[]
+
+  @@index([tenantId, category])
+}
+
+model InventoryLoan {
+  id             String        @id @default(cuid())
+  tenantId       String
+  itemId         String
+  quantity       Int
+  borrowerName   String
+  classSection   String
+  studentId      String?
+  issuedAt       DateTime      @default(now())
+  returnedAt     DateTime?
+  issuedByUserId String?
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item           InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  student        Student?      @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, itemId])
+  @@index([tenantId, returnedAt])
 }

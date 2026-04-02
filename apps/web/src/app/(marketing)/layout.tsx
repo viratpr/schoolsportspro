@@ -51,7 +51,7 @@ export default function MarketingLayout({
               <summary className="cursor-pointer rounded-md border border-input bg-background px-2.5 py-2 text-sm font-medium text-foreground list-none [&::-webkit-details-marker]:hidden">
                 Menu
               </summary>
-              <nav className="absolute right-0 top-full z-50 mt-2 flex min-w-[10rem] flex-col gap-1 rounded-md border bg-background p-2 shadow-lg">
+              <nav className="absolute right-0 top-full z-[10060] mt-2 flex min-w-[10rem] flex-col gap-1 rounded-md border bg-background p-2 shadow-lg ring-1 ring-border/60">
                 {nav.map(({ href, label }) => (
                   <Link
                     key={href}

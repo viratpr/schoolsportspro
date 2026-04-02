@@ -22,7 +22,7 @@ export default async function PlatformLayout({
           <summary className="cursor-pointer rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground list-none [&::-webkit-details-marker]:hidden">
             Menu
           </summary>
-          <nav className="absolute left-0 top-full z-50 mt-1 flex min-w-[12rem] flex-col gap-2 rounded-md border bg-background p-3 shadow-lg">
+          <nav className="absolute left-0 top-full z-[10060] mt-1 flex min-w-[12rem] flex-col gap-2 rounded-md border bg-background p-3 shadow-lg ring-1 ring-border/60">
             <Link href="/platform/tenants" className="text-sm text-muted-foreground hover:text-foreground">🏢 Tenants</Link>
             <Link href="/platform/sports" className="text-sm text-muted-foreground hover:text-foreground">📚 Sports Library</Link>
           </nav>

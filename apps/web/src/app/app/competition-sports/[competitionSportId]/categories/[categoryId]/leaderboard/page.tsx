@@ -344,8 +344,8 @@ export default function LeaderboardPage() {
       {/* Certificate modal */}
       <Dialog.Root open={certModalOpen} onOpenChange={setCertModalOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border bg-background p-4 shadow-lg">
+          <Dialog.Overlay className="fixed inset-0 z-[10100] bg-black/50" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-[10110] max-h-[90vh] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border bg-background p-4 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
               <Dialog.Title className="text-lg font-semibold">Generate certificates</Dialog.Title>
               <Dialog.Close asChild>
