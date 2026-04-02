@@ -48,7 +48,7 @@ function mergeEnvFileIntoProcess(envPath) {
 }
 
 // Monorepo: API uses repo root `../../.env`; Next only auto-loads `apps/web/.env*` by default.
-// Pull root env so `/api/billing/*` sees RAZORPAY_* (one `.env` for local dev).
+// Pull root env for shared keys (e.g. one `.env` for JWT / NEXTAUTH in local dev).
 loadRootEnvWithNext();
 // Backfill any keys still missing (covers silent failures and edge cases).
 mergeEnvFileIntoProcess(path.join(repoRoot, '.env'));

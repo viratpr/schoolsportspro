@@ -15,6 +15,7 @@ import cricketRoutes from './routes/cricket.js';
 import publicRoutes from './routes/public.js';
 import tenantProfileRoutes from './routes/tenant-profile.js';
 import dashboardRoutes from './routes/dashboard.js';
+import billingRoutes from './routes/billing.js';
 import { ZodError } from 'zod';
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'change-me-in-production';
@@ -77,6 +78,7 @@ await app.register(cricketRoutes);
 await app.register(publicRoutes);
 await app.register(tenantProfileRoutes);
 await app.register(dashboardRoutes);
+await app.register(billingRoutes);
 
 app.get('/health', async (_, reply) => {
   return reply.send({ status: 'ok' });

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { apiGet, ApiClientError, ApiResult } from '@/lib/api';
+import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatPriceInclGstLabel, PLAN_DETAILS, type BillingPlanKey } from '@/lib/billing-pricing';
@@ -70,26 +70,27 @@ export default function BillingPage() {
       if (!tenantId) return;
       setLoadingPlan(plan);
       try {
-        const createRes = await fetch('/api/billing/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan }),
-        });
-        const createJson = await createRes.json();
-        if (!createRes.ok) {
-          const msg =
-            typeof createJson.error === 'string' ? createJson.error : 'Failed to create order';
-          const hint = typeof createJson.hint === 'string' ? createJson.hint : '';
-          const present = createJson.razorpayEnvPresent;
-          let full = msg;
-          if (hint) full += `\n\n${hint}`;
-          if (present && typeof present === 'object') {
-            full += `\n\nEnv names detected (non-secret):\n${JSON.stringify(present, null, 2)}`;
+        const createResult = await apiPost<{
+          orderId: string;
+          amount: number;
+          currency: string;
+          keyId: string;
+          plan: string;
+        }>('/billing/razorpay/create-order', { plan });
+        if (!createResult.ok) {
+          const err = createResult.error;
+          let full = err.message;
+          const det = err.details as
+            | { hint?: string; razorpayEnvPresent?: Record<string, boolean> }
+            | undefined;
+          if (det?.hint) full += `\n\n${det.hint}`;
+          if (det?.razorpayEnvPresent && typeof det.razorpayEnvPresent === 'object') {
+            full += `\n\nEnv names detected (non-secret):\n${JSON.stringify(det.razorpayEnvPresent, null, 2)}`;
           }
           alert(full);
           return;
         }
-        const { orderId, amount, currency, keyId } = createJson;
+        const { orderId, amount, currency, keyId } = createResult.data;
         const user = session?.user as { name?: string; email?: string } | undefined;
         const loadScript = (): Promise<void> =>
           new Promise((resolve) => {
@@ -119,22 +120,17 @@ export default function BillingPage() {
             ondismiss: () => setLoadingPlan(null),
           },
           handler: async (res) => {
-            const verifyRes = await fetch('/api/billing/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_payment_id: res.razorpay_payment_id,
-                razorpay_order_id: res.razorpay_order_id,
-                razorpay_signature: res.razorpay_signature,
-                plan,
-              }),
+            const verifyResult = await apiPost<{ success: boolean }>('/billing/razorpay/verify', {
+              razorpay_payment_id: res.razorpay_payment_id,
+              razorpay_order_id: res.razorpay_order_id,
+              razorpay_signature: res.razorpay_signature,
+              plan,
             });
-            if (verifyRes.ok) {
+            if (verifyResult.ok) {
               queryClient.invalidateQueries({ queryKey: ['tenants', tenantId, 'entitlements'] });
               window.location.href = '/app/billing?success=1';
             } else {
-              const err = await verifyRes.json().catch(() => ({}));
-              alert(err.error ?? 'Payment verification failed');
+              alert(verifyResult.error.message ?? 'Payment verification failed');
             }
           },
         });
