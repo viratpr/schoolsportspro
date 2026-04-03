@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CertificateTemplate } from '@/components/certificate/CertificateTemplate';
 
 type TenantProfile = {
   id: string;
@@ -27,6 +28,16 @@ function assertOk<T>(r: ApiResult<T>): T {
 }
 
 const DEFAULT_SIGNATURE_LABELS = ['Principal', 'Sports Teacher'];
+
+/** Shown only in settings preview — real certificates use leaderboard data. */
+const CERTIFICATE_PREVIEW_SAMPLE = {
+  competitionName: 'Annual Sports day (2026)',
+  categoryName: 'U-14 — 100m Sprint',
+  studentName: 'Sample Student Name',
+  rank: 1,
+  /** Omit display value in preview (no sample time/score line). */
+  dateLabel: '',
+};
 
 export default function SettingsPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -172,31 +183,60 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Certificate design</CardTitle>
           <p className="text-sm text-muted-foreground">Who signs the certificates (e.g. Principal, Sports Teacher). Order is left to right on the certificate.</p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Signature lines</Label>
-            <div className="space-y-2 mt-2">
-              {signatureLabels.map((label, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <Input
-                    value={label}
-                    onChange={(e) => setSignatureLabelAt(i, e.target.value)}
-                    placeholder="e.g. Principal"
-                    className="max-w-xs"
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={() => removeSignatureLabel(i)} disabled={signatureLabels.length <= 1}>
-                    Remove
+        <CardContent className="min-h-0">
+          <div className="grid min-h-0 gap-8 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-4">
+              <div>
+                <Label>Signature lines</Label>
+                <div className="space-y-2 mt-2">
+                  {signatureLabels.map((label, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <Input
+                        value={label}
+                        onChange={(e) => setSignatureLabelAt(i, e.target.value)}
+                        placeholder="e.g. Principal"
+                        className="max-w-xs"
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={() => removeSignatureLabel(i)} disabled={signatureLabels.length <= 1}>
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addSignatureLabel} disabled={signatureLabels.length >= 4}>
+                    Add signature line
                   </Button>
                 </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={addSignatureLabel} disabled={signatureLabels.length >= 4}>
-                Add signature line
+              </div>
+              <Button onClick={handleSaveCertificateConfig} disabled={patchMutation.isPending}>
+                {patchMutation.isPending ? 'Saving...' : 'Save certificate design'}
               </Button>
             </div>
+
+            <div className="flex min-h-0 min-w-0 flex-col gap-2">
+              <div className="shrink-0">
+                <Label>Preview</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Live preview matches print layout (16:9): the full certificate fits in the frame without scrolling.
+                </p>
+              </div>
+              <div
+                className="w-full shrink-0 overflow-hidden rounded-lg border bg-muted/40 p-2 shadow-sm"
+                aria-label="Certificate preview"
+              >
+                <CertificateTemplate
+                  competitionName={CERTIFICATE_PREVIEW_SAMPLE.competitionName}
+                  categoryName={CERTIFICATE_PREVIEW_SAMPLE.categoryName}
+                  studentName={CERTIFICATE_PREVIEW_SAMPLE.studentName}
+                  rank={CERTIFICATE_PREVIEW_SAMPLE.rank}
+                  date={CERTIFICATE_PREVIEW_SAMPLE.dateLabel}
+                  tenantName={name.trim() || profile?.name || 'Your school'}
+                  logoUrl={profile?.logoUrl ?? null}
+                  signatureLabels={signatureLabels}
+                  className="shadow-md"
+                />
+              </div>
+            </div>
           </div>
-          <Button onClick={handleSaveCertificateConfig} disabled={patchMutation.isPending}>
-            {patchMutation.isPending ? 'Saving...' : 'Save certificate design'}
-          </Button>
         </CardContent>
       </Card>
     </div>
