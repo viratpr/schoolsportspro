@@ -1,5 +1,7 @@
+# Athletic Bharat
 # SchoolSportsPro
 
+Production-quality MVP for a multi-tenant SaaS web app for Indian schools to manage yearly sports tournaments.
 Production-quality MVP for a multi-tenant SaaS web app for K-12 schools to manage seasonal sports tournaments.
 
 ## Stack
@@ -93,6 +95,7 @@ pnpm dev:web
 | `NEXT_PUBLIC_API_URL` | API base URL (e.g. http://localhost:3001) |
 | `APP_URL` | Public app URL (e.g. http://localhost:3000); used for Stripe redirects and sitemap |
 | `STRIPE_SECRET_KEY` | Stripe secret key (for checkout, portal, webhooks) |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (optional, for client-side) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (for `/api/billing/webhook`) |
 | `STRIPE_PRICE_ID_TOURNAMENT_PASS` | Stripe Price ID for Tournament Pass (3 months) |
 | `STRIPE_PRICE_ID_ANNUAL_PRO` | Stripe Price ID for Annual Pro (12 months) |
@@ -198,8 +201,8 @@ Scorecards are driven by **templates** (per sport in the global Sports Library),
 
 - **Trial:** Plan TRIAL, status TRIALING, `trialEndsAt` = signup + 30 days. Max sports per competition = `TenantSettings.sportsLimitTrial` (default 2).
 - **Paid plans:** After successful Stripe subscription, plan = TOURNAMENT_PASS or ANNUAL_PRO with ACTIVE/TRIALING status as reported by Stripe.
-- **Enforcing limit:** API `POST .../competitions/:id/sports` returns `402` with code `PLAN_LIMIT_REACHED` when trial and enabled count ≥ limit. UI shows “Enabled X of Y” and disables “Enable” when at limit, with “Upgrade to Pro” CTA.
-- **Billing page:** `/app/billing` — current plan, trial end date, “Upgrade to Pro” (Stripe Checkout), “Manage billing” (Stripe Portal for Pro).
+- **Enforcing limit:** API `POST .../competitions/:id/sports` returns `402` with code `PLAN_LIMIT_REACHED` when trial and enabled count ≥ limit. UI shows “Enabled X of Y” and disables “Enable” when at limit, with a paid-plan upgrade CTA.
+- **Billing page:** `/app/billing` — current plan, trial end date, Stripe Checkout for paid plans, and “Manage billing” (Stripe Portal).
 
 ### Stripe webhook (local dev)
 
