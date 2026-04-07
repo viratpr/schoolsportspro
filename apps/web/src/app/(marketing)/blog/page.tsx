@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getAllPosts } from '@/lib/blog';
 
 export const metadata = {
-  title: 'Blog | Athletic Bharat',
+  title: 'Blog | SchoolSportsPro',
   description: 'Articles on running school sports tournaments, scoring, and categories.',
 };
 

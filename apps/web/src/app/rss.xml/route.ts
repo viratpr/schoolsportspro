@@ -1,13 +1,13 @@
 import { getAllPosts } from '@/lib/blog';
 
-const BASE = process.env.APP_URL ?? 'https://athleticbharat.com';
+const BASE = process.env.APP_URL ?? 'https://schoolsportspro.com';
 
 export async function GET() {
   const posts = getAllPosts();
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Athletic Bharat Blog</title>
+    <title>SchoolSportsPro Blog</title>
     <link>${BASE}/blog</link>
     <description>Tips and guides for running school sports events.</description>
     <language>en</language>

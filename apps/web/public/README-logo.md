@@ -1,30 +1,53 @@
-# Athletic Bharat logo assets
+# SchoolSports Pro — Logo Assets
 
-Vector logos for the Athletic Bharat SaaS platform (sports tournament management for schools in India).
+Vector logos for the SchoolSports Pro SaaS platform (school sports tournament management).
 
 ## Files
 
 | File | Use |
 |------|-----|
-| **logo.svg** | Horizontal logo (icon + wordmark). Use in website header, marketing pages. ~220×48px. |
-| **logo-icon.svg** | Icon only, square 64×64. Use as favicon, app icon, social avatar. |
-| **logo-dark-bg.svg** | Same as logo.svg with white/light fills. Use on dark backgrounds. |
+| **logo.svg** | Horizontal logo (icon + wordmark + tagline). Website header, marketing pages. 240×48 px. |
+| **logo-icon.svg** | Icon only, square 64×64. Favicon, app icon, social avatar. |
+| **logo-dark-bg.svg** | Same layout with white wordmark and lighter-blue icon stroke for dark headers / footers. |
 
 ## Colors
 
-- **Primary:** `#1E3A8A` (deep blue – trust, technology)
-- **Accent:** `#F97316` (orange – energy, sport)
-- **Optional:** `#16A34A` (green – youth, growth); not used in current mark
+| Role | Hex | Usage |
+|------|-----|-------|
+| Primary blue | `#1E40AF` | S-track spine, start dot, light-bg wordmark |
+| Light blue | `#60A5FA` | S-track spine on dark backgrounds |
+| Sport orange | `#F97316` | Speed chevron, finish dot, "Pro" tspan |
+| Dark slate | `#0F172A` | Wordmark on light backgrounds |
+| Muted | `#64748B` / `#94A3B8` | Tagline text (light / dark) |
+
+## Icon — Track-S Monogram
+
+The icon is a stylised **"S" letterform** built from a single continuous cubic-bezier path that traces the shape of an **athletics S-bend double-lane track**. Two design accents reinforce the sports-tech identity:
+
+- **Orange forward chevron** (`›`) at the upper-right — suggests speed, forward motion, and performance data.
+- **Lane-marker dots** at the start (blue) and finish (orange) endpoints of the S — evoke lane numbering and a race start/finish.
+
+The shape scales cleanly from 16 px (favicon) to large display sizes with no gradients or raster elements.
+
+## Wordmark
+
+- **"SchoolSports"** — `font-weight: 700`, dark slate (`#0F172A`) on light / white on dark
+- **"Pro"** — `font-weight: 800`, sport orange (`#F97316`), slightly heavier to pop
+- Tagline: `SPORTS MANAGEMENT PLATFORM` in small-caps spaced lettering below
 
 ## Usage
 
-- **Header:** `<img src="/logo.svg" alt="Athletic Bharat" width="180" height="40" />` or Next.js `Image`.
-- **Dark header:** Use `logo-dark-bg.svg` when the header background is dark.
-- **Favicon:** Set in app metadata to `/logo-icon.svg` (SVG favicon supported in modern browsers).
-- **App icon:** Use `logo-icon.svg` or export a 512×512 PNG from it for PWA/app store.
+```html
+<!-- Light header -->
+<img src="/logo.svg" alt="SchoolSports Pro" width="200" height="40" />
 
-## Design
+<!-- Dark header / footer -->
+<img src="/logo-dark-bg.svg" alt="SchoolSports Pro" width="200" height="40" />
 
-- **Icon:** **Talent on stage:** a **stage** (circle), **spotlight** rays from above, and an **athlete in victory pose** (arms raised). A curved **platform** line at the base completes the stage. Ashoka Chakra (12 spokes) keeps Indian identity. The mark stands for bringing real talent to the front, giving Indian athletes a stage, and making them famous. Flat, no gradients.
-- **Wordmark:** "Athletic" in primary blue, "Bharat" in accent orange (emphasized). System sans-serif, bold.
-- **Scalable:** All assets are SVG; scale to any size without quality loss.
+<!-- Favicon (SVG, modern browsers) -->
+<link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
+```
+
+## Scalability
+
+All files are pure SVG (no raster, no gradients). Export `logo-icon.svg` at 512×512 PNG for PWA manifests and app-store icons.

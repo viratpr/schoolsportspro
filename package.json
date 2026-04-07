@@ -7,6 +7,7 @@
     "dev": "pnpm -r --parallel dev",
     "dev:web": "pnpm --filter @bharatathlete/web dev",
     "dev:web:alt": "pnpm --filter @bharatathlete/web dev:alt",
+    "dev:web:clean": "npx kill-port 3002 && pnpm --filter @bharatathlete/web clean:next && pnpm --filter @bharatathlete/web dev:alt:nocache",
     "free:api-port": "npx kill-port 3001",
     "dev:api": "pnpm --filter @bharatathlete/api dev",
     "build": "pnpm -r build",

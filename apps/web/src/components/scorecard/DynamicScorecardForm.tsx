@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { BaseballSoftballScorecardForm } from '@/components/scorecard/BaseballSoftballScorecardForm';
+import { BasketballScorecardPage } from '@/components/scorecard/BasketballScorecardPage';
 
 type FieldDef = {
   key: string;
@@ -18,7 +20,14 @@ type FieldDef = {
   arrayItem?: { a: string; b: string };
 };
 
-type PlayerColumnDef = { key: string; label: string; type: string; min?: number; max?: number };
+type PlayerColumnDef = {
+  key: string;
+  label: string;
+  type: string;
+  min?: number;
+  max?: number;
+  options?: { value: string; label: string }[];
+};
 
 type Template = {
   sportKey: string;
@@ -95,6 +104,34 @@ export function DynamicScorecardForm({
   const isVolleyballSets =
     template.sportKey === 'volleyball' && template.scoringModel === 'SETS';
   const volleyballConstraints = template.match.constraints ?? {};
+
+  if (template.sportKey === 'baseball-softball') {
+    return (
+      <BaseballSoftballScorecardForm
+        template={template}
+        match={match}
+        matchScorecard={matchScorecard}
+        roster={roster}
+        onSaveDraft={onSaveDraft}
+        onFinalize={onFinalize}
+        canFinalize={canFinalize}
+      />
+    );
+  }
+
+  if (template.sportKey === 'basketball') {
+    return (
+      <BasketballScorecardPage
+        template={template}
+        match={match}
+        matchScorecard={matchScorecard}
+        roster={roster}
+        onSaveDraft={onSaveDraft}
+        onFinalize={onFinalize}
+        canFinalize={canFinalize}
+      />
+    );
+  }
 
   const buildPlayerLines = useCallback(() => {
     const lines: { teamId: string; studentId: string | null; playerName: string | null; stats: Record<string, unknown> }[] = [];
@@ -253,82 +290,160 @@ export function DynamicScorecardForm({
         <p className="text-sm text-muted-foreground">{template.ui.hints.join(' ')}</p>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Match score</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {match.teamAName ?? 'Team A'} vs {match.teamBName ?? 'Team B'}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(template.match.sharedFields ?? []).map((f) => renderField(f))}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {template.match.teamFields.map((f) => (
-              <div key={f.key}>{renderField(f)}</div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {template.players?.enabled && (roster.teamA.length > 0 || roster.teamB.length > 0) && (
-        <Card>
+      <div className="grid gap-4 lg:grid-cols-12">
+        <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Player stats</CardTitle>
+            <CardTitle>Match score</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {match.teamAName ?? 'Team A'} vs {match.teamBName ?? 'Team B'}
+            </p>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left p-2">Player</th>
-                  {template.players.columns.map((c) => (
-                    <th key={c.key} className="text-left p-2">
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {roster.teamA.map((m) => (
-                  <tr key={`A-${m.studentId}`}>
-                    <td className="p-2">{m.fullName}</td>
-                    {template.players!.columns.map((c) => (
-                      <td key={c.key} className="p-2">
-                        <Input
-                          type="number"
-                          min={c.min}
-                          max={c.max}
-                          className="w-20 h-8"
-                          value={Number((playerStats[`A-${m.studentId}`]?.[c.key] ?? '')) || ''}
-                          onChange={(e) => setPlayerStat(`A-${m.studentId}`, c.key, e.target.value === '' ? undefined : Number(e.target.value))}
-                          disabled={readOnly}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-                {roster.teamB.map((m) => (
-                  <tr key={`B-${m.studentId}`}>
-                    <td className="p-2">{m.fullName}</td>
-                    {template.players!.columns.map((c) => (
-                      <td key={c.key} className="p-2">
-                        <Input
-                          type="number"
-                          min={c.min}
-                          max={c.max}
-                          className="w-20 h-8"
-                          value={Number((playerStats[`B-${m.studentId}`]?.[c.key] ?? '')) || ''}
-                          onChange={(e) => setPlayerStat(`B-${m.studentId}`, c.key, e.target.value === '' ? undefined : Number(e.target.value))}
-                          disabled={readOnly}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <CardContent className="space-y-4">
+            {(template.match.sharedFields ?? []).map((f) => renderField(f))}
+            <div className="grid grid-cols-1 gap-4">
+              {template.match.teamFields.map((f) => (
+                <div key={f.key}>{renderField(f)}</div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      )}
+
+        {template.players?.enabled && (roster.teamA.length > 0 || roster.teamB.length > 0) && (
+          <Card className="lg:col-span-8">
+            <CardHeader>
+              <CardTitle>Player stats</CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2">Player</th>
+                    {template.players.columns.map((c) => (
+                      <th key={c.key} className="text-left p-2">
+                        {c.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {roster.teamA.map((m) => (
+                    <tr key={`A-${m.studentId}`}>
+                      <td className="p-2">{m.fullName}</td>
+                      {template.players!.columns.map((c) => (
+                        <td key={c.key} className="p-2">
+                          {c.type === 'text' ? (
+                            <Input
+                              type="text"
+                              className="h-8 min-w-[7rem]"
+                              value={
+                                typeof playerStats[`A-${m.studentId}`]?.[c.key] === 'string'
+                                  ? String(playerStats[`A-${m.studentId}`]?.[c.key] ?? '')
+                                  : ''
+                              }
+                              onChange={(e) => setPlayerStat(`A-${m.studentId}`, c.key, e.target.value)}
+                              disabled={readOnly}
+                            />
+                          ) : c.type === 'select' ? (
+                            <select
+                              className="h-8 rounded border border-input bg-background px-2 text-sm min-w-[7rem]"
+                              value={
+                                typeof playerStats[`A-${m.studentId}`]?.[c.key] === 'string'
+                                  ? String(playerStats[`A-${m.studentId}`]?.[c.key] ?? '')
+                                  : ''
+                              }
+                              onChange={(e) => setPlayerStat(`A-${m.studentId}`, c.key, e.target.value || undefined)}
+                              disabled={readOnly}
+                            >
+                              <option value="">Select</option>
+                              {(c.options ?? []).map((o) => (
+                                <option key={o.value} value={o.value}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <Input
+                              type="number"
+                              min={c.min}
+                              max={c.max}
+                              className="w-20 h-8"
+                              value={Number((playerStats[`A-${m.studentId}`]?.[c.key] ?? '')) || ''}
+                              onChange={(e) =>
+                                setPlayerStat(
+                                  `A-${m.studentId}`,
+                                  c.key,
+                                  e.target.value === '' ? undefined : Number(e.target.value)
+                                )
+                              }
+                              disabled={readOnly}
+                            />
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  {roster.teamB.map((m) => (
+                    <tr key={`B-${m.studentId}`}>
+                      <td className="p-2">{m.fullName}</td>
+                      {template.players!.columns.map((c) => (
+                        <td key={c.key} className="p-2">
+                          {c.type === 'text' ? (
+                            <Input
+                              type="text"
+                              className="h-8 min-w-[7rem]"
+                              value={
+                                typeof playerStats[`B-${m.studentId}`]?.[c.key] === 'string'
+                                  ? String(playerStats[`B-${m.studentId}`]?.[c.key] ?? '')
+                                  : ''
+                              }
+                              onChange={(e) => setPlayerStat(`B-${m.studentId}`, c.key, e.target.value)}
+                              disabled={readOnly}
+                            />
+                          ) : c.type === 'select' ? (
+                            <select
+                              className="h-8 rounded border border-input bg-background px-2 text-sm min-w-[7rem]"
+                              value={
+                                typeof playerStats[`B-${m.studentId}`]?.[c.key] === 'string'
+                                  ? String(playerStats[`B-${m.studentId}`]?.[c.key] ?? '')
+                                  : ''
+                              }
+                              onChange={(e) => setPlayerStat(`B-${m.studentId}`, c.key, e.target.value || undefined)}
+                              disabled={readOnly}
+                            >
+                              <option value="">Select</option>
+                              {(c.options ?? []).map((o) => (
+                                <option key={o.value} value={o.value}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <Input
+                              type="number"
+                              min={c.min}
+                              max={c.max}
+                              className="w-20 h-8"
+                              value={Number((playerStats[`B-${m.studentId}`]?.[c.key] ?? '')) || ''}
+                              onChange={(e) =>
+                                setPlayerStat(
+                                  `B-${m.studentId}`,
+                                  c.key,
+                                  e.target.value === '' ? undefined : Number(e.target.value)
+                                )
+                              }
+                              disabled={readOnly}
+                            />
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {computedPreview && (
         <Card>

@@ -179,12 +179,12 @@ export default function LeaderboardPage() {
   const canGenerateCerts = leaderboardEntries.length > 0;
   const certDate =
     categoryData?.competitionSport?.competition?.startDate
-      ? new Date(categoryData.competitionSport.competition.startDate).toLocaleDateString('en-IN', {
+      ? new Date(categoryData.competitionSport.competition.startDate).toLocaleDateString('en-US', {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
         })
-      : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+      : new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const handlePrintCertificate = (entry: LeaderboardEntry) => {
     setPrintingEntryId(entry.participantEntryId);

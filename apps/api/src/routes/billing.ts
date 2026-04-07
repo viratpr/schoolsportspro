@@ -1,171 +1,291 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import Razorpay from 'razorpay';
-import crypto from 'node:crypto';
+import Stripe from 'stripe';
 import { z } from 'zod';
 import { Role, SubscriptionPlan } from '@bharatathlete/db';
 import { prisma } from '../lib/prisma.js';
 import { requireRole, verifyJWT } from '../middleware/auth.js';
-import {
-  PLAN_DETAILS,
-  inclusivePaiseForPlan,
-  type BillingPlanKey,
-} from '../lib/billing-pricing.js';
-import { razorpayEnvPresence, razorpayKeyId, razorpayKeySecret } from '../lib/razorpay-env.js';
+import { PLAN_DETAILS, type BillingPlanKey } from '../lib/billing-pricing.js';
+import { AppError, badRequest, notFound } from '../lib/errors.js';
 
 type AuthedUser = { userId: string; tenantId: string | null; role: Role; email: string };
 
-const createOrderBody = z.object({
-  plan: z.string().min(1),
-});
-
-const verifyBody = z.object({
-  razorpay_payment_id: z.string().min(1),
-  razorpay_order_id: z.string().min(1),
-  razorpay_signature: z.string().min(1),
-  plan: z.string().min(1),
+const checkoutBody = z.object({
+  plan: z.enum(['TOURNAMENT_PASS', 'ANNUAL_PRO']),
 });
 
 function getUser(request: FastifyRequest): AuthedUser {
   return (request as FastifyRequest & { user: AuthedUser }).user;
 }
 
-function verifyPaymentSignature(keySecret: string, orderId: string, paymentId: string, signature: string): boolean {
-  const body = orderId + '|' + paymentId;
-  const expected = crypto.createHmac('sha256', keySecret).update(body).digest('hex');
-  return expected === signature;
+function getAppUrl(): string {
+  return (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+}
+
+function getStripeClient(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) {
+    throw new AppError(500, 'Stripe is not configured', 'STRIPE_NOT_CONFIGURED');
+  }
+  return new Stripe(key);
+}
+
+function getStripeWebhookSecret(): string {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    throw new AppError(500, 'Stripe webhook secret is not configured', 'STRIPE_NOT_CONFIGURED');
+  }
+  return secret;
+}
+
+function getPriceIdForPlan(plan: BillingPlanKey): string {
+  const map: Record<BillingPlanKey, string | undefined> = {
+    TOURNAMENT_PASS: process.env.STRIPE_PRICE_ID_TOURNAMENT_PASS?.trim(),
+    ANNUAL_PRO: process.env.STRIPE_PRICE_ID_ANNUAL_PRO?.trim(),
+  };
+  const priceId = map[plan];
+  if (!priceId) {
+    throw new AppError(500, `Missing Stripe price ID for ${plan}`, 'STRIPE_PRICE_MISSING');
+  }
+  return priceId;
+}
+
+function mapPriceIdToPlan(priceId: string | null | undefined): BillingPlanKey | null {
+  if (!priceId) return null;
+  const tournamentPassId = process.env.STRIPE_PRICE_ID_TOURNAMENT_PASS?.trim();
+  const annualProId = process.env.STRIPE_PRICE_ID_ANNUAL_PRO?.trim();
+  if (priceId === tournamentPassId) return 'TOURNAMENT_PASS';
+  if (priceId === annualProId) return 'ANNUAL_PRO';
+  return null;
+}
+
+function mapStripeStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
+  switch (status) {
+    case 'active':
+      return 'ACTIVE';
+    case 'trialing':
+      return 'TRIALING';
+    case 'past_due':
+      return 'PAST_DUE';
+    case 'incomplete':
+    case 'incomplete_expired':
+    case 'unpaid':
+      return 'INCOMPLETE';
+    case 'canceled':
+      return 'CANCELED';
+    default:
+      return 'INCOMPLETE';
+  }
+}
+
+function toDate(unixTs: number | null | undefined): Date | null {
+  return unixTs ? new Date(unixTs * 1000) : null;
+}
+
+async function resolveTenantId(metadataTenantId: string | null, stripeCustomerId: string | null): Promise<string | null> {
+  if (metadataTenantId) {
+    const tenant = await prisma.tenant.findUnique({ where: { id: metadataTenantId }, select: { id: true } });
+    if (tenant) return tenant.id;
+  }
+  if (!stripeCustomerId) return null;
+  const sub = await prisma.tenantSubscription.findFirst({
+    where: { stripeCustomerId },
+    select: { tenantId: true },
+  });
+  return sub?.tenantId ?? null;
 }
 
 export default async function billingRoutes(app: FastifyInstance) {
-  app.addHook('preHandler', verifyJWT);
-
-  app.post('/billing/razorpay/create-order', async (request, reply) => {
-    const user = getUser(request);
-    if (!user.tenantId) {
-      return reply.status(400).send({ error: 'No tenant', code: 'NO_TENANT' });
-    }
-    requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH, Role.VIEWER]);
-
-    const parsed = createOrderBody.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
-        error: 'Validation failed',
-        code: 'VALIDATION_ERROR',
-        details: parsed.error.flatten().fieldErrors,
-      });
+  app.post('/billing/stripe/webhook', { config: { rawBody: true } }, async (request, reply) => {
+    const signature = request.headers['stripe-signature'];
+    if (!signature || Array.isArray(signature)) {
+      throw badRequest('Missing stripe-signature header', 'STRIPE_SIGNATURE_MISSING');
     }
 
-    const plan = parsed.data.plan as BillingPlanKey;
-    if (!(plan in PLAN_DETAILS)) {
-      return reply.status(400).send({ error: 'Invalid plan', code: 'INVALID_PLAN' });
+    const rawBody = (request as FastifyRequest & { rawBody?: string }).rawBody;
+    if (!rawBody) {
+      throw new AppError(400, 'Missing raw webhook payload', 'STRIPE_PAYLOAD_MISSING');
     }
 
-    const keyId = razorpayKeyId();
-    const keySecret = razorpayKeySecret();
-    if (!keyId || !keySecret) {
-      const hint = keyId && !keySecret
-        ? 'Key ID is set on the API, but RAZORPAY_KEY_SECRET (or RAZORPAY_SECRET) is missing. Set it on the API process and redeploy.'
-        : !keyId && keySecret
-          ? 'Key secret is set but no key ID. Set RAZORPAY_KEY_ID (or NEXT_PUBLIC_RAZORPAY_KEY_ID) on the API process.'
-          : 'Set RAZORPAY_KEY_SECRET (or RAZORPAY_SECRET) and RAZORPAY_KEY_ID on the API process.';
-      return reply.status(500).send({
-        error: 'Razorpay not configured',
-        code: 'RAZORPAY_NOT_CONFIGURED',
-        details: {
-          missing: { keySecret: !keySecret, keyId: !keyId },
-          razorpayEnvPresent: razorpayEnvPresence(),
-          hint,
+    const stripe = getStripeClient();
+    const webhookSecret = getStripeWebhookSecret();
+
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    } catch {
+      throw badRequest('Stripe webhook signature verification failed', 'STRIPE_SIGNATURE_INVALID');
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const tenantId = session.metadata?.tenantId ?? null;
+      const customerId =
+        typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id ?? null;
+      const subscriptionId =
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription?.id ?? null;
+
+      if (tenantId && customerId) {
+        await prisma.tenantSubscription.upsert({
+          where: { tenantId },
+          create: {
+            tenantId,
+            plan: 'TRIAL',
+            status: 'TRIALING',
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId ?? undefined,
+          },
+          update: {
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscriptionId ?? undefined,
+          },
+        });
+      }
+    }
+
+    if (
+      event.type === 'customer.subscription.created' ||
+      event.type === 'customer.subscription.updated' ||
+      event.type === 'customer.subscription.deleted'
+    ) {
+      const subscription = event.data.object as Stripe.Subscription;
+      const subscriptionAny = subscription as Stripe.Subscription & {
+        current_period_end?: number;
+        trial_end?: number;
+      };
+      const customerId =
+        typeof subscription.customer === 'string'
+          ? subscription.customer
+          : subscription.customer?.id ?? null;
+
+      const tenantId = await resolveTenantId(subscription.metadata?.tenantId ?? null, customerId);
+      if (!tenantId) {
+        request.log.warn({ eventType: event.type, customerId }, 'Stripe webhook ignored: tenant not resolved');
+        return reply.send({ received: true });
+      }
+
+      const existing = await prisma.tenantSubscription.findUnique({ where: { tenantId } });
+      const lineItemPrice = subscription.items.data[0]?.price?.id ?? null;
+      const planFromPrice = mapPriceIdToPlan(lineItemPrice);
+      const metadataPlan = subscription.metadata?.plan;
+      const planFromMetadata =
+        metadataPlan && metadataPlan in PLAN_DETAILS
+          ? (metadataPlan as BillingPlanKey)
+          : null;
+
+      const resolvedPlan: SubscriptionPlan =
+        (planFromMetadata ?? planFromPrice ?? (existing?.plan as BillingPlanKey | undefined) ?? 'TOURNAMENT_PASS') as SubscriptionPlan;
+
+      await prisma.tenantSubscription.upsert({
+        where: { tenantId },
+        create: {
+          tenantId,
+          plan: resolvedPlan,
+          status: mapStripeStatus(subscription.status),
+          currentPeriodEnd: toDate(subscriptionAny.current_period_end) ?? undefined,
+          trialEndsAt: toDate(subscriptionAny.trial_end) ?? undefined,
+          stripeCustomerId: customerId ?? undefined,
+          stripeSubscriptionId: subscription.id,
+        },
+        update: {
+          plan: resolvedPlan,
+          status: mapStripeStatus(subscription.status),
+          currentPeriodEnd: toDate(subscriptionAny.current_period_end) ?? null,
+          trialEndsAt: toDate(subscriptionAny.trial_end) ?? null,
+          stripeCustomerId: customerId ?? null,
+          stripeSubscriptionId: subscription.id,
         },
       });
     }
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: user.tenantId },
-    });
-    if (!tenant) {
-      return reply.status(404).send({ error: 'Tenant not found', code: 'NOT_FOUND' });
-    }
-
-    const amountPaise = inclusivePaiseForPlan(plan);
-    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
-
-    try {
-      const order = await razorpay.orders.create({
-        amount: amountPaise,
-        currency: 'INR',
-        receipt: `rcpt_${user.tenantId.slice(0, 8)}_${plan}_${Date.now()}`.slice(0, 40),
-        notes: { tenantId: user.tenantId, plan },
-      });
-      return reply.send({
-        orderId: order.id,
-        amount: amountPaise,
-        currency: 'INR',
-        keyId,
-        plan,
-      });
-    } catch (err) {
-      request.log.error(err);
-      return reply.status(500).send({ error: 'Failed to create order', code: 'RAZORPAY_ORDER_FAILED' });
-    }
+    return reply.send({ received: true });
   });
 
-  app.post('/billing/razorpay/verify', async (request, reply) => {
+  app.addHook('preHandler', verifyJWT);
+
+  app.post('/billing/stripe/checkout-session', async (request, reply) => {
     const user = getUser(request);
-    if (!user.tenantId) {
-      return reply.status(400).send({ error: 'No tenant', code: 'NO_TENANT' });
-    }
+    if (!user.tenantId) throw badRequest('No tenant', 'NO_TENANT');
     requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH, Role.VIEWER]);
 
-    const keySecret = razorpayKeySecret();
-    if (!keySecret) {
-      return reply.status(500).send({
-        error: 'Razorpay not configured',
-        code: 'RAZORPAY_NOT_CONFIGURED',
-        details: {
-          missing: { keySecret: true },
-          razorpayEnvPresent: razorpayEnvPresence(),
-          hint: 'Set RAZORPAY_KEY_SECRET or RAZORPAY_SECRET on the API process and redeploy.',
+    const { plan } = checkoutBody.parse(request.body);
+    const tenant = await prisma.tenant.findUnique({ where: { id: user.tenantId } });
+    if (!tenant) throw notFound('Tenant not found');
+
+    const stripe = getStripeClient();
+    const priceId = getPriceIdForPlan(plan);
+    const appUrl = getAppUrl();
+    const existingSub = await prisma.tenantSubscription.findUnique({
+      where: { tenantId: user.tenantId },
+      select: { stripeCustomerId: true },
+    });
+
+    let customerId = existingSub?.stripeCustomerId ?? null;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: tenant.name,
+        metadata: { tenantId: tenant.id },
+      });
+      customerId = customer.id;
+      await prisma.tenantSubscription.upsert({
+        where: { tenantId: user.tenantId },
+        create: {
+          tenantId: user.tenantId,
+          plan: 'TRIAL',
+          status: 'TRIALING',
+          stripeCustomerId: customerId,
+        },
+        update: {
+          stripeCustomerId: customerId,
         },
       });
     }
 
-    const parsed = verifyBody.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({
-        error: 'Validation failed',
-        code: 'VALIDATION_ERROR',
-        details: parsed.error.flatten().fieldErrors,
-      });
-    }
-
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = parsed.data;
-    if (!(plan in PLAN_DETAILS)) {
-      return reply.status(400).send({ error: 'Invalid plan', code: 'INVALID_PLAN' });
-    }
-
-    if (!verifyPaymentSignature(keySecret, razorpay_order_id, razorpay_payment_id, razorpay_signature)) {
-      return reply.status(400).send({ error: 'Payment verification failed', code: 'VERIFY_FAILED' });
-    }
-
-    const subPlan = plan as SubscriptionPlan;
-    const { months } = PLAN_DETAILS[plan as BillingPlanKey];
-    const currentPeriodEnd = new Date();
-    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + months);
-
-    await prisma.tenantSubscription.upsert({
-      where: { tenantId: user.tenantId },
-      create: {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${appUrl}/app/billing?success=1`,
+      cancel_url: `${appUrl}/app/billing?canceled=1`,
+      metadata: {
         tenantId: user.tenantId,
-        plan: subPlan,
-        status: 'ACTIVE',
-        currentPeriodEnd,
+        plan,
       },
-      update: {
-        plan: subPlan,
-        status: 'ACTIVE',
-        currentPeriodEnd,
+      subscription_data: {
+        metadata: {
+          tenantId: user.tenantId,
+          plan,
+        },
       },
+      allow_promotion_codes: true,
     });
 
-    return reply.send({ success: true });
+    return reply.send({ url: session.url, sessionId: session.id, plan });
+  });
+
+  app.post('/billing/stripe/portal-session', async (request, reply) => {
+    const user = getUser(request);
+    if (!user.tenantId) throw badRequest('No tenant', 'NO_TENANT');
+    requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH, Role.VIEWER]);
+
+    const sub = await prisma.tenantSubscription.findUnique({
+      where: { tenantId: user.tenantId },
+      select: { stripeCustomerId: true },
+    });
+    if (!sub?.stripeCustomerId) {
+      throw badRequest('No Stripe customer found for this tenant', 'STRIPE_CUSTOMER_MISSING');
+    }
+
+    const stripe = getStripeClient();
+    const appUrl = getAppUrl();
+    const session = await stripe.billingPortal.sessions.create({
+      customer: sub.stripeCustomerId,
+      return_url: `${appUrl}/app/billing`,
+    });
+    return reply.send({ url: session.url });
   });
 }

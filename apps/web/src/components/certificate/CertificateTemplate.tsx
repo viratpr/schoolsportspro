@@ -92,7 +92,7 @@ export function CertificateTemplate({
           <div className="flex h-full min-h-0 shrink-0 items-center justify-end overflow-hidden">
             <img
               src={BALOGO}
-              alt="Athletic Bharat"
+              alt="SchoolSportsPro"
               className="max-h-full max-w-[22cqw] w-auto object-contain object-right opacity-95"
             />
           </div>

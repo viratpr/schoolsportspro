@@ -4,12 +4,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatInrFromPaise, inclusivePaiseForPlan, PLAN_DETAILS } from '@/lib/billing-pricing';
+import { formatUsdFromCents, centsForPlan } from '@/lib/billing-pricing';
 
 export const metadata = {
-  title: 'Athletic Bharat — School Sports Tournament Management',
+  title: 'SchoolSportsPro — School Sports Tournament Management',
   description: 'Run brackets, scorecards, and results for your school sports events. One month free trial.',
-  openGraph: { title: 'Athletic Bharat — School Sports Tournament Management', description: 'Run brackets, scorecards, and results for your school sports events.' },
+  openGraph: { title: 'SchoolSportsPro — School Sports Tournament Management', description: 'Run brackets, scorecards, and results for your school sports events.' },
 };
 
 export default async function HomePage() {
@@ -73,7 +73,7 @@ export default async function HomePage() {
             <CardContent className="pt-6">
               <p className="font-medium">4. Certificate generation</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Generate certificates from leaderboards with your school logo and Athletic Bharat branding. Configurable signature lines. Print or download as PDF.
+                Generate certificates from leaderboards with your school logo and SchoolSportsPro branding. Configurable signature lines. Print or download as PDF.
               </p>
             </CardContent>
           </Card>
@@ -91,7 +91,7 @@ export default async function HomePage() {
       <section className="container mx-auto px-4 py-16 border-t">
         <h2 className="text-2xl font-semibold text-center mb-10">Sports supported</h2>
         <p className="text-center text-muted-foreground max-w-2xl mx-auto">
-          Cricket, Football, Basketball, Kabaddi, Volleyball, Kho-Kho, Badminton, Chess, Athletics (100m, Long Jump, Shot Put), and more. Team and individual formats with flexible scoring.
+          Basketball, Soccer, Baseball/Softball, American Football, Volleyball, Wrestling, Tennis, Swimming, and Track & Field events such as 100m, Long Jump, and Shot Put.
         </p>
       </section>
 
@@ -115,7 +115,7 @@ export default async function HomePage() {
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold">Free Trial</h3>
-              <p className="text-2xl font-bold mt-2">₹0 <span className="text-sm font-normal text-muted-foreground">/ first month</span></p>
+              <p className="text-2xl font-bold mt-2">$0 <span className="text-sm font-normal text-muted-foreground">/ first month</span></p>
               <p className="text-sm text-muted-foreground mt-2">Up to 2 sports per competition. No card required.</p>
               <Link href="/signup" className="inline-block mt-4">
                 <Button variant="outline" className="w-full">Start free trial</Button>
@@ -125,7 +125,7 @@ export default async function HomePage() {
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold">Tournament Pass</h3>
-              <p className="text-2xl font-bold mt-2">₹4,999 <span className="text-sm font-normal text-muted-foreground">/ 3 months</span></p>
+              <p className="text-2xl font-bold mt-2">{formatUsdFromCents(centsForPlan('TOURNAMENT_PASS'))} <span className="text-sm font-normal text-muted-foreground">/ 3 months</span></p>
               <p className="text-sm text-muted-foreground mt-2">Certificate generation, scorecards, brackets. Ideal for a full tournament season.</p>
               <Link href="/signup" className="inline-block mt-4">
                 <Button variant="outline" className="w-full">Get Tournament Pass</Button>
@@ -136,11 +136,8 @@ export default async function HomePage() {
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold">Annual Pro</h3>
               <p className="text-2xl font-bold mt-2">
-                {formatInrFromPaise(inclusivePaiseForPlan('ANNUAL_PRO'))}{' '}
+                {formatUsdFromCents(centsForPlan('ANNUAL_PRO'))}{' '}
                 <span className="text-sm font-normal text-muted-foreground">/ 12 months</span>
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {formatInrFromPaise(PLAN_DETAILS.ANNUAL_PRO.basePaise)} + 18% GST included
               </p>
               <p className="text-sm text-muted-foreground mt-2">Public URL for live score view, Certificate generation, global ranking. Best value.</p>
               <Link href="/signup?plan=ANNUAL_PRO" className="inline-block mt-4">

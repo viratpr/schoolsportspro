@@ -11,21 +11,21 @@ import {
   WELCOME_MESSAGE,
 } from '@/components/marketing/abAssistantKnowledge';
 
-type Role = 'ab' | 'user';
+type Role = 'assistant' | 'user';
 
 type ChatMessage = { id: string; role: Role; text: string };
 
 let idSeq = 0;
 function nextId(): string {
   idSeq += 1;
-  return `ab-msg-${idSeq}`;
+  return `assistant-msg-${idSeq}`;
 }
 
 export function AbMarketingAssistant() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: nextId(), role: 'ab', text: WELCOME_MESSAGE },
+    { id: nextId(), role: 'assistant', text: WELCOME_MESSAGE },
   ]);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +41,7 @@ export function AbMarketingAssistant() {
     setMessages((prev) => [
       ...prev,
       { id: nextId(), role: 'user', text },
-      { id: nextId(), role: 'ab', text: getAbReply(text) },
+      { id: nextId(), role: 'assistant', text: getAbReply(text) },
     ]);
     setInput('');
   }
@@ -59,14 +59,14 @@ export function AbMarketingAssistant() {
       >
         {open && (
           <Card
-            id="ab-marketing-assistant-panel"
+            id="ssp-marketing-assistant-panel"
             className="w-[min(100vw-2rem,22rem)] max-h-[min(70vh,32rem)] shadow-lg border bg-background/95 backdrop-blur-sm flex flex-col"
           >
             <CardHeader className="p-4 pb-2 space-y-0 shrink-0 flex flex-row items-start justify-between gap-2">
               <div>
-                <CardTitle className="text-lg">AB</CardTitle>
+                <CardTitle className="text-lg">SSP</CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Athletic Bharat assistant
+                  SchoolSportsPro assistant
                 </p>
               </div>
               <Button
@@ -74,7 +74,7 @@ export function AbMarketingAssistant() {
                 variant="ghost"
                 size="icon"
                 className="shrink-0 -mr-2 -mt-1"
-                aria-label="Close AB assistant"
+                aria-label="Close SchoolSportsPro assistant"
                 onClick={() => setOpen(false)}
               >
                 <span aria-hidden className="text-lg leading-none">
@@ -91,14 +91,14 @@ export function AbMarketingAssistant() {
                   <div
                     key={m.id}
                     className={
-                      m.role === 'ab'
+                      m.role === 'assistant'
                         ? 'rounded-lg bg-muted/80 px-3 py-2 text-sm'
                         : 'rounded-lg border px-3 py-2 text-sm ml-6'
                     }
                   >
-                    {m.role === 'ab' && (
+                    {m.role === 'assistant' && (
                       <span className="text-xs font-semibold text-muted-foreground block mb-1">
-                        AB
+                        SSP
                       </span>
                     )}
                     <p className="whitespace-pre-wrap">{m.text}</p>
@@ -129,7 +129,7 @@ export function AbMarketingAssistant() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask something…"
-                  aria-label="Message to AB"
+                  aria-label="Message to assistant"
                   className="text-sm"
                   autoComplete="off"
                 />
@@ -146,11 +146,11 @@ export function AbMarketingAssistant() {
           size="lg"
           className="rounded-full h-14 w-14 shadow-lg p-0 font-semibold pointer-events-auto"
           aria-expanded={open}
-          aria-controls="ab-marketing-assistant-panel"
-          aria-label={open ? 'Close AB assistant' : 'Open AB assistant'}
+          aria-controls="ssp-marketing-assistant-panel"
+          aria-label={open ? 'Close SchoolSportsPro assistant' : 'Open SchoolSportsPro assistant'}
           onClick={() => setOpen((v) => !v)}
         >
-          AB
+          SSP
         </Button>
       </div>
     </div>

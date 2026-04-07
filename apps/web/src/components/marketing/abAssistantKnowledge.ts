@@ -1,10 +1,10 @@
-/** Facts aligned with marketing pages (features, pricing). Edit here to update AB’s answers. */
+/** Facts aligned with marketing pages (features, pricing). */
 
-import { formatPriceInclGstLabel } from '@/lib/billing-pricing';
+import { formatPlanPriceLabel } from '@/lib/billing-pricing';
 
-export const SUPPORT_EMAIL = 'support@athleticbharat.com';
+export const SUPPORT_EMAIL = 'support@schoolsportspro.com';
 
-export const WELCOME_MESSAGE = `Hi — I’m AB, your guide for Athletic Bharat. I can explain trials, pricing, features, or point you to a demo. Use the buttons below or ask me anything in plain language.`;
+export const WELCOME_MESSAGE = `Hi - I'm SSP, your guide for SchoolSportsPro. I can explain trials, pricing, features, or point you to a demo. Use the buttons below or ask me anything in plain language.`;
 
 export const FALLBACK_MESSAGE = `I don’t have a specific answer for that yet. Try the quick actions below, visit our Contact page to book a demo, or email ${SUPPORT_EMAIL} — we’re happy to help.`;
 
@@ -31,12 +31,12 @@ const RULES: Rule[] = [
       'The free trial runs 30 days with full access: brackets, scorecards, unlimited categories and teams, up to 2 sports per competition. No card needed.',
   },
   {
-    keywords: ['price', 'pricing', 'cost', 'pay', 'rupee', 'plan', '₹', '4999', '9999', 'gst', 'tax'],
+    keywords: ['price', 'pricing', 'cost', 'pay', 'usd', 'dollar', 'plan', 'tax'],
     reply:
-      'Free trial: ₹0 for the first month. Paid plans are charged with 18% GST on top of the catalog price (amount at checkout includes GST): Tournament Pass ' +
-      formatPriceInclGstLabel('TOURNAMENT_PASS') +
+      'Free trial: $0 for the first month. Paid plans are billed in USD through Stripe: Tournament Pass ' +
+      formatPlanPriceLabel('TOURNAMENT_PASS') +
       ' for 3 months; Annual Pro ' +
-      formatPriceInclGstLabel('ANNUAL_PRO') +
+      formatPlanPriceLabel('ANNUAL_PRO') +
       ' for 12 months (best value: live score URL, certificates, global ranking, priority support). See /pricing.',
   },
   {
@@ -63,7 +63,7 @@ const RULES: Rule[] = [
   {
     keywords: ['certificate', 'pdf', 'print'],
     reply:
-      'Paid plans include certificate generation from leaderboards — school logo, Athletic Bharat branding, configurable signature lines, print or PDF.',
+      'Paid plans include certificate generation from leaderboards - school logo, SchoolSportsPro branding, configurable signature lines, print or PDF.',
   },
   {
     keywords: ['role', 'admin', 'coordinator', 'coach', 'viewer', 'permission'],

@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { requirePlatformAdmin, requireTenantAccess, verifyJWT } from '../middleware/auth.js';
 import { createTenantSchema, updateTenantSchema, createSportSchema, updateSportSchema } from '../schemas/platform.js';
 import { notFound, badRequest } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Prisma, Role } from '@bharatathlete/db';
 
 export default async function platformRoutes(app: FastifyInstance) {
   const preHandler = [verifyJWT];
@@ -57,22 +57,7 @@ export default async function platformRoutes(app: FastifyInstance) {
 
   app.get('/sports', async (request, reply) => {
     const { cursor, limit } = parseCursor(request);
-    const list = await prisma.sport.findMany({
-      take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        sportType: true,
-        scoringModel: true,
-        defaultRulesText: true,
-        defaultCategoryTemplatesJson: true,
-        teamConfigJson: true,
-        matchConfigJson: true,
-        createdAt: true,
-      },
-    });
+    const list = await listSportsPage(cursor, limit);
     const nextCursor = list.length > limit ? list[limit - 1]?.id : null;
     return reply.send({ data: list.slice(0, limit), nextCursor });
   });
@@ -80,22 +65,7 @@ export default async function platformRoutes(app: FastifyInstance) {
   app.get('/platform/sports', async (request, reply) => {
     requirePlatformAdmin(request, reply);
     const { cursor, limit } = parseCursor(request);
-    const list = await prisma.sport.findMany({
-      take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        sportType: true,
-        scoringModel: true,
-        defaultRulesText: true,
-        defaultCategoryTemplatesJson: true,
-        teamConfigJson: true,
-        matchConfigJson: true,
-        createdAt: true,
-      },
-    });
+    const list = await listSportsPage(cursor, limit);
     const nextCursor = list.length > limit ? list[limit - 1]?.id : null;
     return reply.send({ data: list.slice(0, limit), nextCursor });
   });
@@ -161,4 +131,76 @@ function parseCursor(request: FastifyRequest) {
     cursor: q.cursor ?? undefined,
     limit: Math.min(Math.max(Number(q.limit) || 20, 1), 100),
   };
+}
+
+async function listSportsPage(cursor: string | undefined, limit: number) {
+  const baseArgs = {
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    orderBy: { name: 'asc' as const },
+  };
+
+  try {
+    const list = await prisma.sport.findMany({
+      ...baseArgs,
+      select: {
+        id: true,
+        name: true,
+        sportType: true,
+        scoringModel: true,
+        defaultRulesText: true,
+        defaultCategoryTemplatesJson: true,
+        teamConfigJson: true,
+        matchConfigJson: true,
+        hasInternationalRules: true,
+        createdAt: true,
+      },
+    });
+    return list.map((sport) => ({
+      ...sport,
+      hasInternationalRules: sport.hasInternationalRules || inferHasInternationalRulesByName(sport.name),
+    }));
+  } catch (error) {
+    // Backward-safe read path for environments pending dual-scoring migration.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+      const fallback = await prisma.sport.findMany({
+        ...baseArgs,
+        select: {
+          id: true,
+          name: true,
+          sportType: true,
+          scoringModel: true,
+          defaultRulesText: true,
+          defaultCategoryTemplatesJson: true,
+          teamConfigJson: true,
+          matchConfigJson: true,
+          createdAt: true,
+        },
+      });
+      return fallback.map((sport) => ({
+        ...sport,
+        hasInternationalRules: inferHasInternationalRulesByName(sport.name),
+      }));
+    }
+    throw error;
+  }
+}
+
+function inferHasInternationalRulesByName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  const known = new Set([
+    'basketball',
+    'soccer',
+    'volleyball',
+    'baseball/softball',
+    'baseball',
+    'softball',
+    'tennis',
+    'wrestling',
+    'track & field 100m',
+    'track and field 100m',
+    'athletics 100m',
+    'swimming 50m freestyle',
+  ]);
+  return known.has(normalized);
 }

@@ -44,6 +44,7 @@ export const enableSportSchema = z
   .object({
     sportId: z.string().cuid(),
     enabled: z.boolean().optional().default(true),
+    scoringMode: z.enum(['SIMPLE', 'INTERNATIONAL']).optional().default('SIMPLE'),
     overriddenRulesText: z.string().optional(),
     coordinatorName: z.string().max(200).optional(),
     coordinatorPhone: z.string().max(40).optional(),

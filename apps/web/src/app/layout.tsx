@@ -9,8 +9,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Athletic Bharat',
-  description: 'Sports tournament management for Indian schools',
+  title: 'SchoolSportsPro',
+  description: 'Sports tournament management for K-12 schools',
   icons: {
     icon: [{ url: '/logo-icon.svg', type: 'image/svg+xml' }],
     apple: '/logo-icon.svg',

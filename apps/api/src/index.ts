@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fjwt from '@fastify/jwt';
+import fastifyRawBody from 'fastify-raw-body';
 import { AppError } from './lib/errors.js';
 import authRoutes from './routes/auth.js';
 import platformRoutes from './routes/platform.js';
@@ -65,6 +66,12 @@ app.setErrorHandler((err, request, reply) => {
 
 await app.register(cors, { origin: true });
 await app.register(fjwt, { secret: JWT_SECRET });
+await app.register(fastifyRawBody, {
+  field: 'rawBody',
+  global: false,
+  encoding: 'utf8',
+  runFirst: true,
+});
 
 await app.register(authRoutes);
 await app.register(platformRoutes);

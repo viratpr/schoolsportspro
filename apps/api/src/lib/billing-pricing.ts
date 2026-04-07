@@ -1,30 +1,20 @@
-/**
- * Base catalog prices (excl. GST). Customer pays base × (1 + GST_RATE), rounded to the nearest paisa.
- * Razorpay Orders use the GST-inclusive amount.
- *
- * Keep in sync with apps/web/src/lib/billing-pricing.ts
- */
-export const GST_RATE = 0.18;
+/** Base catalog prices in USD cents. Keep in sync with apps/web/src/lib/billing-pricing.ts. */
 
 export const PLAN_DETAILS = {
   TOURNAMENT_PASS: {
-    basePaise: 499900,
+    baseCents: 49900,
     months: 3,
-    checkoutDescription: 'Tournament Pass (3 months), incl. 18% GST',
+    checkoutDescription: 'Tournament Pass (3 months)',
   },
   ANNUAL_PRO: {
-    basePaise: 999900,
+    baseCents: 99900,
     months: 12,
-    checkoutDescription: 'Annual Pro (12 months), incl. 18% GST',
+    checkoutDescription: 'Annual Pro (12 months)',
   },
 } as const;
 
 export type BillingPlanKey = keyof typeof PLAN_DETAILS;
 
-export function inclusiveAmountPaiseFromBase(basePaise: number): number {
-  return Math.round(basePaise * (1 + GST_RATE));
-}
-
-export function inclusivePaiseForPlan(plan: BillingPlanKey): number {
-  return inclusiveAmountPaiseFromBase(PLAN_DETAILS[plan].basePaise);
+export function centsForPlan(plan: BillingPlanKey): number {
+  return PLAN_DETAILS[plan].baseCents;
 }

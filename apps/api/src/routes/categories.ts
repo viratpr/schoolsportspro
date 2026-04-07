@@ -64,7 +64,21 @@ export default async function categoriesRoutes(app: FastifyInstance) {
       requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR]);
       const cs = await prisma.competitionSport.findFirst({
         where: { id: competitionSportId, tenantId },
-        include: { sport: true },
+        select: {
+          id: true,
+          tenantId: true,
+          competitionId: true,
+          sportId: true,
+          sport: {
+            select: {
+              id: true,
+              name: true,
+              sportType: true,
+              scoringModel: true,
+              defaultCategoryTemplatesJson: true,
+            },
+          },
+        },
       });
       if (!cs) throw notFound('Competition sport not found');
       const body = fromTemplatesSchema.parse(request.body);
@@ -125,7 +139,45 @@ export default async function categoriesRoutes(app: FastifyInstance) {
       requireRole(request, [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH, Role.VIEWER]);
       const category = await prisma.category.findFirst({
         where: { id: categoryId, tenantId },
-        include: { competitionSport: { include: { sport: true, competition: true } }, stats: true },
+        include: {
+          competitionSport: {
+            select: {
+              id: true,
+              tenantId: true,
+              competitionId: true,
+              sportId: true,
+              enabled: true,
+              overriddenRulesText: true,
+              templateSnapshotJson: true,
+              templateVersion: true,
+              coordinatorName: true,
+              coordinatorPhone: true,
+              coordinatorEmail: true,
+              createdAt: true,
+              updatedAt: true,
+              sport: {
+                select: {
+                  id: true,
+                  name: true,
+                  sportType: true,
+                  scoringModel: true,
+                },
+              },
+              competition: {
+                select: {
+                  id: true,
+                  name: true,
+                  academicYear: true,
+                  startDate: true,
+                  endDate: true,
+                  venue: true,
+                  status: true,
+                },
+              },
+            },
+          },
+          stats: true,
+        },
       });
       if (!category) throw notFound('Category not found');
       return reply.send(category);
@@ -444,7 +496,32 @@ export default async function categoriesRoutes(app: FastifyInstance) {
         include: {
           category: {
             include: {
-              competitionSport: { include: { sport: true } },
+              competitionSport: {
+                select: {
+                  id: true,
+                  tenantId: true,
+                  competitionId: true,
+                  sportId: true,
+                  enabled: true,
+                  overriddenRulesText: true,
+                  templateSnapshotJson: true,
+                  templateVersion: true,
+                  coordinatorName: true,
+                  coordinatorPhone: true,
+                  coordinatorEmail: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  sport: {
+                    select: {
+                      id: true,
+                      name: true,
+                      sportType: true,
+                      scoringModel: true,
+                      matchConfigJson: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },

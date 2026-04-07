@@ -32,7 +32,7 @@ export default function MarketingLayout({
       <FixedMarketingBackground />
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 min-w-0 items-center justify-between gap-2 px-4">
-          <Link href="/" className="flex items-center gap-2 shrink-0 min-w-0" aria-label="Athletic Bharat home">
+          <Link href="/" className="flex items-center gap-2 shrink-0 min-w-0" aria-label="SchoolSportsPro home">
             <Image src="/logo.svg" alt="" width={180} height={40} className="h-8 w-auto max-sm:h-7 sm:h-9" priority />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
@@ -80,7 +80,9 @@ export default function MarketingLayout({
       <footer className="border-t bg-background/90 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="font-semibold">Athletic Bharat</div>
+            <Link href="/" aria-label="SchoolSports Pro">
+              <Image src="/logo.svg" alt="SchoolSports Pro" width={180} height={40} className="h-8 w-auto" />
+            </Link>
             <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2">
               {footerLinks.map(({ href, label }) => (
                 <Link
@@ -95,8 +97,8 @@ export default function MarketingLayout({
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
             Contact:{' '}
-            <a href="mailto:support@athleticbharat.com" className="underline hover:text-foreground">
-              support@athleticbharat.com
+            <a href="mailto:support@schoolsportspro.com" className="underline hover:text-foreground">
+              support@schoolsportspro.com
             </a>
           </p>
         </div>

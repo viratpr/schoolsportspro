@@ -28,6 +28,35 @@ function substitute(template: string, vars: Record<string, string | number>): st
   return out;
 }
 
+function hasSharedField(template: SportScorecardTemplate, key: string): boolean {
+  return (template.match.sharedFields ?? []).some((f) => f.key === key);
+}
+
+function numberOrUndefined(payload: Record<string, unknown>, key: string): number | undefined {
+  const value = payload[key];
+  if (value === undefined || value === null || value === '') return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function requireNumber(payload: Record<string, unknown>, key: string, label: string): number {
+  const n = numberOrUndefined(payload, key);
+  if (n == null) throw new Error(`${label} is required and must be a number.`);
+  return n;
+}
+
+function requireMatchingTotal(
+  teamTotal: number,
+  components: number[],
+  totalLabel: string,
+  componentLabel: string
+): void {
+  const expected = components.reduce((sum, value) => sum + value, 0);
+  if (teamTotal !== expected) {
+    throw new Error(`${totalLabel} must equal ${componentLabel} total (${expected}).`);
+  }
+}
+
 /** Validate payload and optional playerLines against template. Throws on invalid. */
 export function validatePayload(
   template: SportScorecardTemplate,
@@ -50,6 +79,22 @@ export function validatePayload(
   for (const f of match.sharedFields ?? []) {
     if (f.required && (payload[f.key] === undefined || payload[f.key] === null))
       throw new Error(`Missing required shared field: ${f.key}`);
+    if (f.type === 'number' && payload[f.key] != null) {
+      const n = Number(payload[f.key]);
+      if (Number.isNaN(n)) throw new Error(`Invalid number for ${f.key}`);
+      if (f.min != null && n < f.min) throw new Error(`${f.key} must be >= ${f.min}`);
+      if (f.max != null && n > f.max) throw new Error(`${f.key} must be <= ${f.max}`);
+    }
+    if (f.type === 'select' && payload[f.key] != null && f.options?.length) {
+      const value = String(payload[f.key]);
+      const allowed = new Set(f.options.map((o) => o.value));
+      if (!allowed.has(value)) {
+        throw new Error(`Invalid option for ${f.key}`);
+      }
+    }
+    if (f.type === 'array' && payload[f.key] != null && !Array.isArray(payload[f.key])) {
+      throw new Error(`${f.key} must be an array`);
+    }
   }
   if (template.players?.enabled && template.players.columns) {
     for (const line of playerLines ?? []) {
@@ -111,6 +156,135 @@ export function validatePayload(
           throw new Error(`Set ${setNumber}: winner must lead by at least ${winBy} points.`);
         }
       }
+    }
+  }
+
+  // International invariant checks for non-volleyball templates.
+  if (hasSharedField(template, 'q1TeamA') || hasSharedField(template, 'q1TeamB')) {
+    const scoreA = requireNumber(payload, 'teamAScore', 'Team A score');
+    const scoreB = requireNumber(payload, 'teamBScore', 'Team B score');
+    const q1A = requireNumber(payload, 'q1TeamA', 'Q1 Team A points');
+    const q2A = requireNumber(payload, 'q2TeamA', 'Q2 Team A points');
+    const q3A = requireNumber(payload, 'q3TeamA', 'Q3 Team A points');
+    const q4A = requireNumber(payload, 'q4TeamA', 'Q4 Team A points');
+    const q1B = requireNumber(payload, 'q1TeamB', 'Q1 Team B points');
+    const q2B = requireNumber(payload, 'q2TeamB', 'Q2 Team B points');
+    const q3B = requireNumber(payload, 'q3TeamB', 'Q3 Team B points');
+    const q4B = requireNumber(payload, 'q4TeamB', 'Q4 Team B points');
+    const otA = numberOrUndefined(payload, 'otTeamA') ?? 0;
+    const otB = numberOrUndefined(payload, 'otTeamB') ?? 0;
+    requireMatchingTotal(scoreA, [q1A, q2A, q3A, q4A, otA], 'Team A score', 'quarter/OT');
+    requireMatchingTotal(scoreB, [q1B, q2B, q3B, q4B, otB], 'Team B score', 'quarter/OT');
+  }
+
+  if (hasSharedField(template, 'half1TeamA') || hasSharedField(template, 'half1TeamB')) {
+    const scoreA = requireNumber(payload, 'teamAScore', 'Team A score');
+    const scoreB = requireNumber(payload, 'teamBScore', 'Team B score');
+    const half1A = requireNumber(payload, 'half1TeamA', '1st half Team A goals');
+    const half2A = requireNumber(payload, 'half2TeamA', '2nd half Team A goals');
+    const half1B = requireNumber(payload, 'half1TeamB', '1st half Team B goals');
+    const half2B = requireNumber(payload, 'half2TeamB', '2nd half Team B goals');
+    requireMatchingTotal(scoreA, [half1A, half2A], 'Team A score', 'half');
+    requireMatchingTotal(scoreB, [half1B, half2B], 'Team B score', 'half');
+  }
+
+  if (hasSharedField(template, 'inning1A') || hasSharedField(template, 'inning1B')) {
+    const scoreA = requireNumber(payload, 'teamAScore', 'Team A score');
+    const scoreB = requireNumber(payload, 'teamBScore', 'Team B score');
+    const inningsA = [1, 2, 3, 4, 5, 6, 7].map((i) => numberOrUndefined(payload, `inning${i}A`) ?? 0);
+    const inningsB = [1, 2, 3, 4, 5, 6, 7].map((i) => numberOrUndefined(payload, `inning${i}B`) ?? 0);
+    requireMatchingTotal(scoreA, inningsA, 'Team A score', 'innings');
+    requireMatchingTotal(scoreB, inningsB, 'Team B score', 'innings');
+  }
+
+  if (hasSharedField(template, 'set1GamesA') || hasSharedField(template, 'set1GamesB')) {
+    const setPairs: Array<[number, number]> = [
+      [
+        numberOrUndefined(payload, 'set1GamesA') ?? 0,
+        numberOrUndefined(payload, 'set1GamesB') ?? 0,
+      ],
+      [
+        numberOrUndefined(payload, 'set2GamesA') ?? 0,
+        numberOrUndefined(payload, 'set2GamesB') ?? 0,
+      ],
+      [
+        numberOrUndefined(payload, 'set3GamesA') ?? 0,
+        numberOrUndefined(payload, 'set3GamesB') ?? 0,
+      ],
+    ];
+    const hasAnySetGames = setPairs.some(([a, b]) => a > 0 || b > 0);
+    if (!hasAnySetGames) {
+      throw new Error('At least one tennis set game score is required.');
+    }
+    if (Array.isArray(payload.setScores)) {
+      const providedSetScores = payload.setScores as Array<Record<string, unknown>>;
+      const comparableSets = Math.min(providedSetScores.length, setPairs.length);
+      for (let i = 0; i < comparableSets; i += 1) {
+        const set = asRecord(providedSetScores[i]);
+        const fromSetScoresA = Number(set.teamAScore ?? set.a ?? set.teamA ?? 0);
+        const fromSetScoresB = Number(set.teamBScore ?? set.b ?? set.teamB ?? 0);
+        const [gamesA, gamesB] = setPairs[i];
+        if (gamesA !== fromSetScoresA || gamesB !== fromSetScoresB) {
+          throw new Error(`Tennis set ${i + 1} games must match setScores.`);
+        }
+      }
+    }
+  }
+
+  if (hasSharedField(template, 'period1A') || hasSharedField(template, 'period1B')) {
+    const scoreA = requireNumber(payload, 'teamAScore', 'Competitor A points');
+    const scoreB = requireNumber(payload, 'teamBScore', 'Competitor B points');
+    const period1A = requireNumber(payload, 'period1A', 'Period 1 points (A)');
+    const period2A = requireNumber(payload, 'period2A', 'Period 2 points (A)');
+    const period1B = requireNumber(payload, 'period1B', 'Period 1 points (B)');
+    const period2B = requireNumber(payload, 'period2B', 'Period 2 points (B)');
+    const fallA = String(payload.fallA ?? 'NO');
+    const fallB = String(payload.fallB ?? 'NO');
+    if (fallA === 'YES' && fallB === 'YES') {
+      throw new Error('Both wrestlers cannot win by fall in the same bout.');
+    }
+    if (fallA !== 'YES' && fallB !== 'YES') {
+      requireMatchingTotal(scoreA, [period1A, period2A], 'Competitor A points', 'period');
+      requireMatchingTotal(scoreB, [period1B, period2B], 'Competitor B points', 'period');
+    }
+  }
+
+  if (hasSharedField(template, 'laneA') || hasSharedField(template, 'laneB')) {
+    const laneA = numberOrUndefined(payload, 'laneA');
+    const laneB = numberOrUndefined(payload, 'laneB');
+    if (laneA != null && laneB != null && laneA === laneB) {
+      throw new Error('Athletics lane assignments must be different.');
+    }
+    const reactionTimeA = numberOrUndefined(payload, 'reactionTimeA');
+    const reactionTimeB = numberOrUndefined(payload, 'reactionTimeB');
+    if (reactionTimeA != null && reactionTimeA >= 1) {
+      throw new Error('Reaction Time A must be below 1 second.');
+    }
+    if (reactionTimeB != null && reactionTimeB >= 1) {
+      throw new Error('Reaction Time B must be below 1 second.');
+    }
+  }
+
+  if (hasSharedField(template, 'strokeViolationA') || hasSharedField(template, 'strokeViolationB')) {
+    const split25mA = numberOrUndefined(payload, 'split25mA');
+    const split25mB = numberOrUndefined(payload, 'split25mB');
+    const finalA = numberOrUndefined(payload, 'teamAValue');
+    const finalB = numberOrUndefined(payload, 'teamBValue');
+    if (split25mA != null && finalA != null && split25mA > finalA) {
+      throw new Error('Split 25m A cannot exceed final time A.');
+    }
+    if (split25mB != null && finalB != null && split25mB > finalB) {
+      throw new Error('Split 25m B cannot exceed final time B.');
+    }
+    const strokeViolationA = String(payload.strokeViolationA ?? 'NO');
+    const strokeViolationB = String(payload.strokeViolationB ?? 'NO');
+    const dqReasonA = String(payload.dqReasonA ?? '').trim();
+    const dqReasonB = String(payload.dqReasonB ?? '').trim();
+    if (strokeViolationA === 'YES' && !dqReasonA) {
+      throw new Error('DQ reason is required for swimmer A when stroke violation is YES.');
+    }
+    if (strokeViolationB === 'YES' && !dqReasonB) {
+      throw new Error('DQ reason is required for swimmer B when stroke violation is YES.');
     }
   }
 }

@@ -20,6 +20,11 @@ enum ScoringModel {
   ATTEMPTS_BEST_OF
 }
 
+enum ScoringMode {
+  SIMPLE
+  INTERNATIONAL
+}
+
 enum Role {
   PLATFORM_ADMIN
   SCHOOL_ADMIN
@@ -112,6 +117,8 @@ model Sport {
   teamConfigJson                Json?
   matchConfigJson               Json?
   scorecardTemplateJson         Json?
+  internationalTemplateJson     Json?
+  hasInternationalRules         Boolean            @default(false)
   createdAt                     DateTime           @default(now())
   updatedAt                     DateTime           @updatedAt
   competitionSports             CompetitionSport[]
@@ -253,6 +260,7 @@ model CompetitionSport {
   overriddenRulesText  String?
   templateSnapshotJson Json?
   templateVersion      Int?
+  scoringMode          ScoringMode @default(SIMPLE)
   coordinatorName      String?
   coordinatorPhone     String?
   coordinatorEmail     String?

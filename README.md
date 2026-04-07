@@ -1,6 +1,6 @@
-# Athletic Bharat
+# SchoolSportsPro
 
-Production-quality MVP for a multi-tenant SaaS web app for Indian schools to manage yearly sports tournaments.
+Production-quality MVP for a multi-tenant SaaS web app for K-12 schools to manage seasonal sports tournaments.
 
 ## Stack
 
@@ -34,15 +34,15 @@ docker compose up -d
 ```
 
 Your `.env` can use:  
-`DATABASE_URL=postgresql://athleticbharat:athleticbharat@localhost:5432/athleticbharat`
+`DATABASE_URL=postgresql://schoolsportspro:schoolsportspro@localhost:5432/schoolsportspro`
 
 **Option B – Without Docker**
 
-- **Local PostgreSQL:** Install [PostgreSQL](https://www.postgresql.org/download/windows/) on Windows. Create a database (e.g. `athleticbharat`) and a user with password, then set in `.env`:
+- **Local PostgreSQL:** Install [PostgreSQL](https://www.postgresql.org/download/windows/) on Windows. Create a database (e.g. `schoolsportspro`) and a user with password, then set in `.env`:
   ```env
-  DATABASE_URL=postgresql://USERNAME:PASSWORD@localhost:5432/athleticbharat
+  DATABASE_URL=postgresql://USERNAME:PASSWORD@localhost:5432/schoolsportspro
   ```
-- **Cloud Postgres (free tier):** Use [Neon](https://neon.tech), [Supabase](https://supabase.com), or [Railway](https://railway.app). Create a project, get the connection string, and set `DATABASE_URL` in `.env`.
+- **Cloud Postgres:** Use [Supabase](https://supabase.com) for hosted Postgres. Create a project, get the pooled connection string, and set `DATABASE_URL` in `.env`.
 
 Redis is optional for the MVP (in-memory cache is used if Redis is not configured).
 
@@ -93,11 +93,19 @@ pnpm dev:web
 | `NEXT_PUBLIC_API_URL` | API base URL (e.g. http://localhost:3001) |
 | `APP_URL` | Public app URL (e.g. http://localhost:3000); used for Stripe redirects and sitemap |
 | `STRIPE_SECRET_KEY` | Stripe secret key (for checkout, portal, webhooks) |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (optional, for client-side) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (for `/api/billing/webhook`) |
-| `STRIPE_PRICE_ID_PRO` | Stripe Price ID for Pro subscription (monthly) |
+| `STRIPE_PRICE_ID_TOURNAMENT_PASS` | Stripe Price ID for Tournament Pass (3 months) |
+| `STRIPE_PRICE_ID_ANNUAL_PRO` | Stripe Price ID for Annual Pro (12 months) |
 | `REDIS_URL` | Optional; if set, can switch cache to Redis |
 | `PORT` | API port (default 3001) |
+
+## Deployment target
+
+- **Web:** Deploy `apps/web` to [Vercel](https://vercel.com).
+- **API:** Deploy `apps/api` to any Node-capable host and expose a public base URL.
+- **Database:** Use Supabase Postgres and point `DATABASE_URL` to the Supabase pooled connection string.
+- **Required wiring:** Set `NEXT_PUBLIC_API_URL` in Vercel to the public API URL and keep `APP_URL`/`NEXTAUTH_URL` aligned to the Vercel domain.
+- **Docker/ECR:** Existing Docker files/workflows can remain for optional self-hosting, but they are not required for Vercel + Supabase.
 
 ## Scripts
 
@@ -113,9 +121,9 @@ pnpm dev:web
 ## Seed data
 
 - **Platform admin:** `admin@platform.local` / `Admin@1234`  
-- **Demo school:** tenant "Demo School" (Mumbai, Maharashtra)  
+- **Demo school:** tenant "Demo School" (Austin, Texas)  
 - **School admin:** `admin@demoschool.local` / `School@1234`  
-- **Global sports library:** Cricket, Football, Kabaddi, Basketball, Volleyball, Badminton, Chess, Athletics 100m, Long Jump, Shot Put (with rules and category templates).
+- **Global sports library:** Basketball, Soccer, Baseball/Softball, American Football, Volleyball, Wrestling, Tennis, Swimming 50m Freestyle, and Track & Field 100m (with rules and category templates).
 
 ### Bootstrap `PLATFORM_ADMIN` in production
 
@@ -184,21 +192,21 @@ Scorecards are driven by **templates** (per sport in the global Sports Library),
 
 - **Routes (no auth):** `/` (landing), `/features`, `/pricing`, `/about`, `/contact`, `/blog`, `/blog/[slug]`, `/legal/privacy`, `/legal/terms`.
 - **Signup:** `POST /auth/signup` (API) creates Tenant, User (SCHOOL_ADMIN), TenantSettings (sportsLimitTrial: 2), and TenantSubscription (TRIAL, 30 days). Then sign in at `/login` or get redirected after signup.
-- **Billing:** Stripe Checkout (Pro) and Customer Portal. Next.js API routes: `POST /api/billing/checkout`, `POST /api/billing/portal`, `POST /api/billing/webhook`. Webhook keeps `TenantSubscription` in sync (subscription created/updated/deleted, invoice paid/failed).
+- **Billing:** Stripe Checkout (Tournament Pass + Annual Pro) and Customer Portal. API routes: `POST /billing/stripe/checkout-session`, `POST /billing/stripe/portal-session`, `POST /billing/stripe/webhook`.
 
 ### Trial and plan gating
 
 - **Trial:** Plan TRIAL, status TRIALING, `trialEndsAt` = signup + 30 days. Max sports per competition = `TenantSettings.sportsLimitTrial` (default 2).
-- **Pro:** After successful Stripe subscription, plan = PRO, status = ACTIVE; unlimited sports per competition.
+- **Paid plans:** After successful Stripe subscription, plan = TOURNAMENT_PASS or ANNUAL_PRO with ACTIVE/TRIALING status as reported by Stripe.
 - **Enforcing limit:** API `POST .../competitions/:id/sports` returns `402` with code `PLAN_LIMIT_REACHED` when trial and enabled count ≥ limit. UI shows “Enabled X of Y” and disables “Enable” when at limit, with “Upgrade to Pro” CTA.
 - **Billing page:** `/app/billing` — current plan, trial end date, “Upgrade to Pro” (Stripe Checkout), “Manage billing” (Stripe Portal for Pro).
 
 ### Stripe webhook (local dev)
 
-Use the [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward webhooks to your app:
+Use the [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward webhooks to your API:
 
 ```bash
-stripe listen --forward-to localhost:3000/api/billing/webhook
+stripe listen --forward-to localhost:3001/billing/stripe/webhook
 ```
 
-Set the printed webhook signing secret as `STRIPE_WEBHOOK_SECRET` in `.env`. Create a Pro price in Stripe Dashboard and set `STRIPE_PRICE_ID_PRO`.
+Set the printed webhook signing secret as `STRIPE_WEBHOOK_SECRET` in `.env`. Create Stripe prices and set `STRIPE_PRICE_ID_TOURNAMENT_PASS` and `STRIPE_PRICE_ID_ANNUAL_PRO`.

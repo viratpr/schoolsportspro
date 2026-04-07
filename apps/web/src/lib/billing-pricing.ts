@@ -1,42 +1,33 @@
-/**
- * Base catalog prices (excl. GST). Customer pays base × (1 + GST_RATE), rounded to the nearest paisa.
- * Razorpay Orders use the GST-inclusive amount.
- */
-export const GST_RATE = 0.18;
+/** Base catalog prices in USD cents. */
 
 export const PLAN_DETAILS = {
   TOURNAMENT_PASS: {
-    basePaise: 499900,
+    baseCents: 49900,
     months: 3,
-    checkoutDescription: 'Tournament Pass (3 months), incl. 18% GST',
+    checkoutDescription: 'Tournament Pass (3 months)',
   },
   ANNUAL_PRO: {
-    basePaise: 999900,
+    baseCents: 99900,
     months: 12,
-    checkoutDescription: 'Annual Pro (12 months), incl. 18% GST',
+    checkoutDescription: 'Annual Pro (12 months)',
   },
 } as const;
 
 export type BillingPlanKey = keyof typeof PLAN_DETAILS;
 
-export function inclusiveAmountPaiseFromBase(basePaise: number): number {
-  return Math.round(basePaise * (1 + GST_RATE));
+export function centsForPlan(plan: BillingPlanKey): number {
+  return PLAN_DETAILS[plan].baseCents;
 }
 
-export function inclusivePaiseForPlan(plan: BillingPlanKey): number {
-  return inclusiveAmountPaiseFromBase(PLAN_DETAILS[plan].basePaise);
-}
-
-export function formatInrFromPaise(paise: number): string {
-  return new Intl.NumberFormat('en-IN', {
+export function formatUsdFromCents(cents: number): string {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'INR',
+    currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(paise / 100);
+  }).format(cents / 100);
 }
 
-/** e.g. "₹5,898.82 (incl. 18% GST)" */
-export function formatPriceInclGstLabel(plan: BillingPlanKey): string {
-  return `${formatInrFromPaise(inclusivePaiseForPlan(plan))} (incl. 18% GST)`;
+export function formatPlanPriceLabel(plan: BillingPlanKey): string {
+  return formatUsdFromCents(centsForPlan(plan));
 }

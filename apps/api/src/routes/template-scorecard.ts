@@ -173,8 +173,23 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
         where: { id: matchId, tenantId },
         include: {
           category: {
-            include: {
-              competitionSport: { include: { sport: true } },
+            select: {
+              id: true,
+              name: true,
+              competitionSport: {
+                select: {
+                  id: true,
+                  templateSnapshotJson: true,
+                  templateVersion: true,
+                  sport: {
+                    select: {
+                      id: true,
+                      name: true,
+                      templateVersion: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -245,8 +260,23 @@ export default async function templateScorecardRoutes(app: FastifyInstance) {
         where: { id: matchId, tenantId },
         include: {
           category: {
-            include: {
-              competitionSport: { include: { sport: true } },
+            select: {
+              id: true,
+              name: true,
+              competitionSport: {
+                select: {
+                  id: true,
+                  templateSnapshotJson: true,
+                  templateVersion: true,
+                  sport: {
+                    select: {
+                      id: true,
+                      name: true,
+                      templateVersion: true,
+                    },
+                  },
+                },
+              },
             },
           },
           teamA: { select: { id: true } },

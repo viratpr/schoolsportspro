@@ -19,7 +19,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-type Sport = { id: string; name: string; sportType: string; scoringModel: string };
+type ScoringMode = 'SIMPLE' | 'INTERNATIONAL';
+type Sport = { id: string; name: string; sportType: string; scoringModel: string; hasInternationalRules?: boolean };
 type ListRes = { data: Sport[]; nextCursor: string | null };
 type CompetitionSport = {
   id: string;
@@ -38,14 +39,14 @@ type Entitlements = {
   isProActive: boolean;
 };
 
-type CoordinatorDraft = { name: string; phone: string; email: string };
+type CoordinatorDraft = { name: string; phone: string; email: string; scoringMode: ScoringMode };
 
 function assertOk<T>(r: ApiResult<T>): T {
   if (!r.ok) throw new ApiClientError(r.error.message, r.error.statusCode, r.error.code, r.error.details);
   return r.data;
 }
 
-const emptyDraft = (): CoordinatorDraft => ({ name: '', phone: '', email: '' });
+const emptyDraft = (): CoordinatorDraft => ({ name: '', phone: '', email: '', scoringMode: 'SIMPLE' });
 
 export default function CompetitionSportsPage() {
   const params = useParams();
@@ -54,7 +55,11 @@ export default function CompetitionSportsPage() {
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;
   const [limitError, setLimitError] = useState<string | null>(null);
   const [draft, setDraft] = useState<CoordinatorDraft>(emptyDraft);
-  const [enableTarget, setEnableTarget] = useState<{ sportId: string; sportName: string } | null>(null);
+  const [enableTarget, setEnableTarget] = useState<{
+    sportId: string;
+    sportName: string;
+    hasInternationalRules: boolean;
+  } | null>(null);
   const [editTarget, setEditTarget] = useState<CompetitionSport | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
 
@@ -84,6 +89,7 @@ export default function CompetitionSportsPage() {
       const r = await apiPost(`/tenants/${tenantId}/competitions/${competitionId}/sports`, {
         sportId: payload.sportId,
         enabled: true,
+        scoringMode: payload.scoringMode,
         coordinatorName: payload.name.trim() || undefined,
         coordinatorPhone: payload.phone.trim() || undefined,
         coordinatorEmail: payload.email.trim() || undefined,
@@ -136,7 +142,7 @@ export default function CompetitionSportsPage() {
     setEditTarget(null);
     setDraft(emptyDraft());
     setDialogError(null);
-    setEnableTarget({ sportId: s.id, sportName: s.name });
+    setEnableTarget({ sportId: s.id, sportName: s.name, hasInternationalRules: !!s.hasInternationalRules });
   }
 
   function openEdit(cs: CompetitionSport) {
@@ -146,6 +152,7 @@ export default function CompetitionSportsPage() {
       name: cs.coordinatorName ?? '',
       phone: cs.coordinatorPhone ?? '',
       email: cs.coordinatorEmail ?? '',
+      scoringMode: 'SIMPLE',
     });
     setEditTarget(cs);
   }
@@ -188,10 +195,40 @@ export default function CompetitionSportsPage() {
                   : ''}
             </DialogTitle>
             <DialogDescription>
-              Optional contact for the person coordinating this sport in this competition (name, phone, email).
+              Optional contact for the person coordinating this sport in this competition.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            {enableTarget?.hasInternationalRules && (
+              <div className="space-y-2 rounded-md border p-3">
+                <Label>Scoring mode</Label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant={draft.scoringMode === 'SIMPLE' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDraft((d) => ({ ...d, scoringMode: 'SIMPLE' }))}
+                    disabled={pending}
+                  >
+                    Simple
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={draft.scoringMode === 'INTERNATIONAL' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setDraft((d) => ({ ...d, scoringMode: 'INTERNATIONAL' }))}
+                    disabled={pending}
+                  >
+                    International
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {draft.scoringMode === 'SIMPLE'
+                    ? 'Simple: enter final score only. Quick and easy.'
+                    : 'International: captures detailed period/set breakdown and official fields.'}
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="coord-name">Coordinator name</Label>
               <Input

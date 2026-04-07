@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
+import Image from 'next/image';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 
 export default async function PlatformLayout({
@@ -17,7 +18,12 @@ export default async function PlatformLayout({
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b px-4 py-3 flex items-center gap-2 md:gap-4 min-w-0">
-        <Link href="/platform/tenants" className="font-semibold shrink-0 text-sm sm:text-base">Athletic Bharat (Platform)</Link>
+        <Link href="/platform/tenants" className="shrink-0 flex items-center gap-2" aria-label="SchoolSports Pro Platform">
+          <Image src="/logo.svg" alt="SchoolSports Pro" width={180} height={40} className="h-8 w-auto" priority />
+          <span className="hidden sm:inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/20">
+            Platform
+          </span>
+        </Link>
         <details className="md:hidden relative shrink-0">
           <summary className="cursor-pointer rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground list-none [&::-webkit-details-marker]:hidden">
             Menu

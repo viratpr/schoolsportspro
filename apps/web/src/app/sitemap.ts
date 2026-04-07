@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getPostSlugs } from '@/lib/blog';
 
-const BASE = process.env.APP_URL ?? 'https://athleticbharat.com';
+const BASE = process.env.APP_URL ?? 'https://schoolsportspro.com';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const slugs = getPostSlugs();

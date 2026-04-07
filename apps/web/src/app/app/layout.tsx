@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import Link from 'next/link';
+import Image from 'next/image';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 
 export default async function AppLayout({
@@ -26,7 +27,9 @@ export default async function AppLayout({
       }}
     >
       <header className="border-b px-4 py-3 flex items-center gap-2 md:gap-4 bg-background/60 backdrop-blur-sm min-w-0">
-        <Link href="/app/dashboard" className="font-semibold shrink-0">Athletic Bharat</Link>
+        <Link href="/app/dashboard" className="shrink-0" aria-label="SchoolSports Pro">
+          <Image src="/logo.svg" alt="SchoolSports Pro" width={180} height={40} className="h-8 w-auto" priority />
+        </Link>
         <details className="md:hidden relative shrink-0">
           <summary className="cursor-pointer rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-foreground list-none [&::-webkit-details-marker]:hidden">
             Menu

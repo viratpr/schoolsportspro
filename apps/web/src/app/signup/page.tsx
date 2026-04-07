@@ -130,7 +130,7 @@ function SignupForm() {
           <CardTitle>Create your school account</CardTitle>
           <p className="text-sm text-muted-foreground">
             {postSignupPlan === 'ANNUAL_PRO'
-              ? 'Start your free trial (no card). After you create your account, we’ll open secure payment for Annual Pro (Razorpay).'
+              ? 'Start your free trial (no card). After you create your account, we will open secure Stripe checkout for Annual Pro.'
               : 'Start your free trial. No card required.'}
           </p>
         </CardHeader>

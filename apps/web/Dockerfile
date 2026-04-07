@@ -13,7 +13,7 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY apps/web apps/web
-# Razorpay order creation runs on the API — `next build` must not require Razorpay secrets on the web image.
+# Stripe checkout and webhook processing run on the API.
 RUN pnpm --filter @bharatathlete/web build
 
 EXPOSE 3000
