@@ -5,7 +5,7 @@ import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.
 import { createStudentSchema, updateStudentSchema, studentSearchSchema } from '../schemas/tenant.js';
 import { tenantIdParam } from '../schemas/common.js';
 import { notFound, conflict } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 export default async function studentsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', verifyJWT);

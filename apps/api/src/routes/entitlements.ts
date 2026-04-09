@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.js';
 import { tenantIdParam } from '../schemas/common.js';
 import { getTenantEntitlements } from '../lib/entitlements.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 export default async function entitlementsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', verifyJWT);

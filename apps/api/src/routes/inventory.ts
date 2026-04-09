@@ -12,7 +12,7 @@ import {
   patchInventoryItemSchema,
 } from '../schemas/inventory.js';
 import { badRequest, notFound } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 const readRoles = [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH, Role.VIEWER];
 const mutateRoles = [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH];

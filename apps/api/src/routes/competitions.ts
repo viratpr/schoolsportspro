@@ -6,7 +6,7 @@ import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.
 import { createCompetitionSchema, updateCompetitionSchema } from '../schemas/tenant.js';
 import { tenantIdParam } from '../schemas/common.js';
 import { notFound } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 export default async function competitionsRoutes(app: FastifyInstance) {
   app.addHook('preHandler', verifyJWT);

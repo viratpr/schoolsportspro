@@ -1,5 +1,5 @@
-import type { PrismaClient } from '@bharatathlete/db';
-import { CricketMatchStatus, CricketResultType } from '@bharatathlete/db';
+import type { PrismaClient } from '@prisma/client';
+import { CricketMatchStatus, CricketResultType } from '@prisma/client';
 import { badRequest, notFound } from '../lib/errors.js';
 import type { z } from 'zod';
 import type { createMatchSchema, updateInningsSchema, finalizeSchema } from '../schemas/cricket.js';

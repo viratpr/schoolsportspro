@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from '@bharatathlete/db';
+import type { Prisma, PrismaClient } from '@prisma/client';
 
 export type AuditParams = {
   tenantId: string | null;

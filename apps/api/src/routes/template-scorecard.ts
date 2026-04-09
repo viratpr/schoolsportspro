@@ -4,8 +4,8 @@ import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.
 import { tenantIdParam, matchIdParam } from '../schemas/common.js';
 import { templateScorecardPutBodySchema } from '../schemas/scorecard.js';
 import { notFound, badRequest, forbidden } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
-import type { Prisma, PrismaClient } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import { parseTemplateSafe } from '../lib/templates/validator.js';
 import type {
   SportScorecardTemplate,

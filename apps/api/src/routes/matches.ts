@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.js';
 import { tenantIdParam, matchIdParam } from '../schemas/common.js';
 import { notFound } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 export default async function matchesRoutes(app: FastifyInstance) {
   app.addHook('preHandler', verifyJWT);

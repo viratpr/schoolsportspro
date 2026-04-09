@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { z } from 'zod';
 import { signupSchema } from '../schemas/tenant.js';
 import { conflict } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 const require = createRequire(import.meta.url);
 const { compare: bcryptCompare, hash: bcryptHash } = require('bcryptjs');

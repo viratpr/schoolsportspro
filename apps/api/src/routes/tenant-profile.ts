@@ -4,7 +4,7 @@ import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.
 import { tenantIdParam } from '../schemas/common.js';
 import { tenantProfileUpdateSchema } from '../schemas/tenant-profile.js';
 import { notFound } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 const PROFILE_ROLES = [Role.SCHOOL_ADMIN, Role.COORDINATOR];
 

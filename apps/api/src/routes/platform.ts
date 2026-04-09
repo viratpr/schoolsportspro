@@ -3,7 +3,8 @@ import { prisma } from '../lib/prisma.js';
 import { requirePlatformAdmin, requireTenantAccess, verifyJWT } from '../middleware/auth.js';
 import { createTenantSchema, updateTenantSchema, createSportSchema, updateSportSchema } from '../schemas/platform.js';
 import { notFound, badRequest } from '../lib/errors.js';
-import { Prisma, Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export default async function platformRoutes(app: FastifyInstance) {
   const preHandler = [verifyJWT];
@@ -162,7 +163,7 @@ async function listSportsPage(cursor: string | undefined, limit: number) {
     }));
   } catch (error) {
     // Backward-safe read path for environments pending dual-scoring migration.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2022') {
       const fallback = await prisma.sport.findMany({
         ...baseArgs,
         select: {

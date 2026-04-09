@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '../lib/prisma.js';
 import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.js';
 import { tenantIdParam } from '../schemas/common.js';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 
 export default async function dashboardRoutes(app: FastifyInstance) {
   app.addHook('preHandler', verifyJWT);

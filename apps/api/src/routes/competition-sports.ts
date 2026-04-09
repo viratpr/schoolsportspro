@@ -4,7 +4,8 @@ import { requireTenantAccess, requireRole, verifyJWT } from '../middleware/auth.
 import { enableSportSchema, updateCompetitionSportSchema } from '../schemas/tenant.js';
 import { tenantIdParam, competitionIdParam, competitionSportIdParam } from '../schemas/common.js';
 import { badRequest, notFound } from '../lib/errors.js';
-import { Prisma, Role } from '@bharatathlete/db';
+import { Prisma, Role } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { getTenantEntitlements, getEnabledSportsCountForCompetition } from '../lib/entitlements.js';
 
 export default async function competitionSportsRoutes(app: FastifyInstance) {
@@ -554,8 +555,5 @@ function buildInternationalTemplateFallback(
 }
 
 function isMissingDualModeSchemaError(error: unknown): boolean {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
-    return true;
-  }
-  return false;
+  return error instanceof PrismaClientKnownRequestError && error.code === 'P2022';
 }

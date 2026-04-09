@@ -1,4 +1,4 @@
-import { Role } from '@bharatathlete/db';
+import type { Role } from '@prisma/client';
 
 declare module 'fastify' {
   interface FastifyRequest {

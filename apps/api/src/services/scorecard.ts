@@ -1,4 +1,4 @@
-import type { ScoringModel } from '@bharatathlete/db';
+import type { ScoringModel } from '@prisma/client';
 import type { z } from 'zod';
 import { scorecardUpsertBodySchema } from '../schemas/scorecard.js';
 

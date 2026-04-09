@@ -11,7 +11,7 @@ import {
   inningsNumberParam,
 } from '../schemas/cricket.js';
 import { notFound, badRequest } from '../lib/errors.js';
-import { Role, CricketMatchStatus } from '@bharatathlete/db';
+import { Role, CricketMatchStatus } from '@prisma/client';
 import { createMatch, updateInnings, finalize } from '../services/cricket.js';
 
 const CRICKET_ROLES = [Role.SCHOOL_ADMIN, Role.COORDINATOR, Role.COACH, Role.VIEWER];

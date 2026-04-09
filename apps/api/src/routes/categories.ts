@@ -22,8 +22,8 @@ import {
   matchIdParam,
 } from '../schemas/common.js';
 import { notFound, conflict, badRequest } from '../lib/errors.js';
-import { Role } from '@bharatathlete/db';
-import type { Prisma } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { generateKnockoutBracket, finalizeMatch } from '../services/bracket.js';
 import { normalizeScorecardByModel } from '../services/scorecard.js';
 

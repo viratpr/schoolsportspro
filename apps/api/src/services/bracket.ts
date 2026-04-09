@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { badRequest, notFound } from '../lib/errors.js';
-import type { PrismaClient } from '@bharatathlete/db';
-import { MatchStatus, MatchResultMethod } from '@bharatathlete/db';
+import type { PrismaClient } from '@prisma/client';
+import { MatchStatus, MatchResultMethod } from '@prisma/client';
 
 function nextPowerOf2(n: number): number {
   if (n <= 0) return 1;

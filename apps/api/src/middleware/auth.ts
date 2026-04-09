@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { Role } from '@bharatathlete/db';
+import { Role } from '@prisma/client';
 import { forbidden } from '../lib/errors.js';
 
 type JwtPayload = { sub: string; tenantId?: string | null; role: Role; email: string };

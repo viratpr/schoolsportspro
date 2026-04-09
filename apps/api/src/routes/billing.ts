@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import Stripe from 'stripe';
 import { z } from 'zod';
-import { Role, SubscriptionPlan } from '@bharatathlete/db';
+import { Role, SubscriptionPlan, SubscriptionStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { requireRole, verifyJWT } from '../middleware/auth.js';
 import { PLAN_DETAILS, type BillingPlanKey } from '../lib/billing-pricing.js';
