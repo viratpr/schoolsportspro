@@ -38,11 +38,9 @@ function LoginForm() {
       redirect: false,
     });
     if (res?.error) {
-      const isServerError =
-        res.error.includes('Cannot reach auth API') ||
-        res.error.includes('did not respond in time') ||
-        res.error.includes('NEXT_PUBLIC_API_URL');
-      setError(isServerError ? res.error : 'Invalid email or password');
+      // NextAuth passes through the message from authorize() (app DB, Supabase, bridge). Do not
+      // collapse everything to "Invalid email or password" — that hid real causes (e.g. no Prisma User).
+      setError(res.error);
       return;
     }
     router.push(callbackUrl);

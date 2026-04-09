@@ -77,7 +77,13 @@ export async function loginWithEmailPassword(email: string, password: string): P
       email,
       password,
     });
-    if (!sbErr && sbData.session?.access_token) {
+    if (sbErr) {
+      throw new Error(
+        sbErr.message ||
+          'Supabase sign-in failed. Check the password, confirm the email in Supabase if required, and ensure the anon/publishable key matches your project.'
+      );
+    }
+    if (sbData.session?.access_token) {
       const bridgeController = new AbortController();
       const bridgeTimeout = setTimeout(() => bridgeController.abort(), AUTH_FETCH_TIMEOUT_MS);
       let bridgeRes: Response;
@@ -114,6 +120,9 @@ export async function loginWithEmailPassword(email: string, password: string): P
       }
       throw new Error(message);
     }
+    throw new Error(
+      'Supabase did not return a session. If email confirmation is required, confirm your email in the Supabase Auth settings.'
+    );
   }
 
   let message = 'Invalid email or password';
@@ -123,5 +132,7 @@ export async function loginWithEmailPassword(email: string, password: string): P
   } catch {
     // keep default
   }
-  throw new Error(message);
+  throw new Error(
+    `${message} If you use Supabase Auth, set NEXT_PUBLIC_SUPABASE_URL and the JWT anon key from Supabase (Settings → API) on Vercel, and ensure a row exists in table "User" with the same email.`
+  );
 }
