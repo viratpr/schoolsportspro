@@ -56,6 +56,14 @@ mergeEnvFileIntoProcess(path.join(repoRoot, '.env'));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@bharatathlete/api'],
+  /** API package uses NodeNext `.js` specifiers in TS sources; map them for webpack. */
+  webpack: (config) => {
+    config.resolve.extensionAlias = {
+      '.js': ['.ts', '.js', '.tsx', '.jsx'],
+    };
+    return config;
+  },
   // Do not use `env` to inject NEXTAUTH_* here: that inlines values at **build** time, so production
   // images built without NEXTAUTH_URL would bake `localhost` into the client bundle and break
   // signOut redirects. It would also expose NEXTAUTH_SECRET to browser JS. Read real env at runtime

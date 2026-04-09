@@ -38,7 +38,7 @@ const SPORT_TYPES = ['TEAM', 'INDIVIDUAL'] as const;
 const SCORING_MODELS = ['SIMPLE_POINTS', 'SETS', 'CRICKET_LITE', 'TIME_DISTANCE'] as const;
 
 export default function EditSportPage() {
-  const params = useParams();
+  const params = useParams()!;
   const sportId = params.sportId as string;
   const router = useRouter();
   const queryClient = useQueryClient();

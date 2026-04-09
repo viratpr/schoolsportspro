@@ -18,4 +18,4 @@ RUN pnpm --filter @bharatathlete/api build
 
 EXPOSE 3001
 # prisma migrate deploy is the production-safe, non-interactive migration command
-CMD ["sh", "-c", "pnpm --filter @bharatathlete/db exec prisma migrate deploy && node apps/api/dist/index.js"]
+CMD ["sh", "-c", "pnpm --filter @bharatathlete/db exec prisma migrate deploy && node apps/api/dist/server.js"]

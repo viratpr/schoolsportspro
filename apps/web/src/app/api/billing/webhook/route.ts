@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 export async function POST(request: Request) {
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
+    return NextResponse.json({ error: 'API base URL is not configured' }, { status: 500 });
+  }
   const signature = request.headers.get('stripe-signature') ?? '';
   const body = await request.text();
-  const response = await fetch(`${API_URL}/billing/stripe/webhook`, {
+  const response = await fetch(`${apiBase}/billing/stripe/webhook`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

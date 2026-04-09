@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:3001' : 'http://localhost:3001');
+import { getApiBaseUrl } from '@/lib/api-base';
 
 export async function POST(request: Request) {
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
+    return NextResponse.json({ error: 'API base URL is not configured' }, { status: 500 });
+  }
   let body: { email?: string };
   try {
     body = await request.json();
@@ -12,7 +15,7 @@ export async function POST(request: Request) {
   const email = typeof body.email === 'string' ? body.email.trim() : '';
   if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 });
 
-  const res = await fetch(`${API_URL}/auth/forgot-password`, {
+  const res = await fetch(`${apiBase}/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),

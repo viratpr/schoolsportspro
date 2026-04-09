@@ -43,8 +43,8 @@ function assertOk<T>(r: ApiResult<T>): T {
 }
 
 export default function SportSingleWindowPage() {
-  const params = useParams();
-  const searchParams = useSearchParams();
+  const params = useParams()!;
+  const searchParams = useSearchParams()!;
   const competitionId = params.competitionId as string;
   const competitionSportId = params.competitionSportId as string;
   const categoryIdFromUrl = searchParams.get('categoryId');

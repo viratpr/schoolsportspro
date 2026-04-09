@@ -53,7 +53,7 @@ function assertOk<T>(r: ApiResult<T>): T {
 }
 
 export default function CricketMatchesPage() {
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;
   const [competitionId, setCompetitionId] = useState<string>(() => searchParams.get('competitionId') ?? ALL_FILTER);

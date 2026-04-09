@@ -41,7 +41,7 @@ function assertOk<T>(r: ApiResult<T>): T {
 }
 
 export default function TemplateScorecardPage() {
-  const params = useParams();
+  const params = useParams()!;
   const router = useRouter();
   const matchId = params.matchId as string;
   const { data: session } = useSession();

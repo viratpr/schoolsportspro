@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 export async function POST() {
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
+    return NextResponse.json({ error: 'API base URL is not configured' }, { status: 500 });
+  }
   const session = await getServerSession(authOptions);
   const apiToken = (session as { apiToken?: string } | null)?.apiToken;
   if (!apiToken) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const response = await fetch(`${API_URL}/billing/stripe/portal-session`, {
+  const response = await fetch(`${apiBase}/billing/stripe/portal-session`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiToken}`,

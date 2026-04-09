@@ -49,7 +49,7 @@ function assertOk<T>(r: ApiResult<T>): T {
 const emptyDraft = (): CoordinatorDraft => ({ name: '', phone: '', email: '', scoringMode: 'SIMPLE' });
 
 export default function CompetitionSportsPage() {
-  const params = useParams();
+  const params = useParams()!;
   const competitionId = params.competitionId as string;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;

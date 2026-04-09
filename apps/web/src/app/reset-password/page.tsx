@@ -21,7 +21,7 @@ type FormData = z.infer<typeof schema>;
 
 function ResetPasswordForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const token = searchParams.get('token');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);

@@ -3,8 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 type Match = {
   id: string;
@@ -50,7 +49,9 @@ type FullCompetition = {
 };
 
 async function fetchPublicCompetition(shareToken: string): Promise<FullCompetition> {
-  const res = await fetch(`${API_BASE}/public/competitions/${shareToken}/full`, {
+  const base = getApiBaseUrl();
+  if (!base) throw new Error('API is not configured.');
+  const res = await fetch(`${base}/public/competitions/${shareToken}/full`, {
     headers: { Accept: 'application/json' },
   });
   if (!res.ok) {
@@ -70,7 +71,7 @@ function formatDate(d: string) {
 }
 
 export default function PublicLivePage() {
-  const params = useParams();
+  const params = useParams()!;
   const shareToken = params.shareToken as string;
 
   const { data, isLoading, error, isFetching } = useQuery({

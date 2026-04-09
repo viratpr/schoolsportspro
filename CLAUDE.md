@@ -37,6 +37,10 @@ docker compose up -d
 
 Environment variables needed: `DATABASE_URL`, `JWT_SECRET`, `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `NEXT_PUBLIC_API_URL`, `APP_URL`. Stripe and Redis vars are optional.
 
+**Vercel (single project):** set the Vercel project **Root Directory** to `apps/web`. Install/build use [apps/web/vercel.json](apps/web/vercel.json) (repo-root `pnpm install` + `pnpm --filter @bharatathlete/web run build`). Copy every secret that the API needed (`DATABASE_URL`, `JWT_SECRET`, Stripe keys, etc.) into this project. The Fastify app is served under **`/api/rest`** via `pages/api/rest/[[...slug]]`. Optional: set `NEXT_PUBLIC_API_URL` to `https://<your-domain>/api/rest` for an explicit public API base.
+
+**Legacy Vercel API-only project** (`apps/api`): after `pnpm --filter @bharatathlete/api run build`, use serverless entry **`dist/vercel-entry.js`** (default export), not `dist/index.js`.
+
 ## Architecture
 
 ### Monorepo Layout

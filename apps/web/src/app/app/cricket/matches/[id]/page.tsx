@@ -87,7 +87,7 @@ type InningsFormData = z.infer<typeof inningsSchema>;
 const FINALIZED_STATUSES = ['COMPLETED', 'TBD', 'NO_RESULT', 'ABANDONED'];
 
 export default function CricketMatchDetailPage() {
-  const params = useParams();
+  const params = useParams()!;
   const id = params.id as string;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;

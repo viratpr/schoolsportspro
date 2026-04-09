@@ -85,7 +85,7 @@ function isScorecardWithPlayers(json: unknown): json is ScorecardJsonWithPlayers
 const WORKFLOW_STEPS = 'Workflow: Enter scores → Set winner → Winner advances to next round';
 
 export default function MatchPage() {
-  const params = useParams();
+  const params = useParams()!;
   const matchId = params.matchId as string;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;

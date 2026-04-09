@@ -48,7 +48,7 @@ function getWorkflowHint(sportType: string): string {
 }
 
 export default function CompetitionSportCategoriesPage() {
-  const params = useParams();
+  const params = useParams()!;
   const competitionSportId = params.competitionSportId as string;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;

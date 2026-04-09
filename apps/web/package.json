@@ -7,11 +7,13 @@
     "dev:alt": "cross-env NEXTAUTH_URL=http://localhost:3002 next dev -p 3002",
     "dev:alt:nocache": "cross-env NEXTAUTH_URL=http://localhost:3002 NEXT_DISABLE_WEBPACK_CACHE=1 next dev -p 3002",
     "clean:next": "node -e \"require('fs').rmSync('.next',{ recursive: true, force: true })\"",
+    "prebuild": "pnpm --filter @bharatathlete/db exec prisma generate",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@bharatathlete/api": "workspace:*",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-dialog": "^1.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.0",
@@ -37,6 +39,7 @@
     "react-hook-form": "^7.53.0",
     "react-markdown": "^9.0.1",
     "recharts": "^3.8.0",
+    "serverless-http": "^4.0.0",
     "tailwind-merge": "^2.5.0",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.0"

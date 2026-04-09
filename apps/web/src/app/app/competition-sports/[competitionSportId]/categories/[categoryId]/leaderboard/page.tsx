@@ -84,7 +84,7 @@ function computeRanks(
 }
 
 export default function LeaderboardPage() {
-  const params = useParams();
+  const params = useParams()!;
   const competitionSportId = params.competitionSportId as string;
   const categoryId = params.categoryId as string;
   const { data: session } = useSession();

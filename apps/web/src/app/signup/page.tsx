@@ -12,8 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FixedMarketingBackground } from '@/components/marketing/FixedMarketingBackground';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 const slugRegex = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 const schema = z.object({
@@ -42,7 +41,7 @@ const BILLING_CHECKOUT_KEY = 'billing_open_checkout';
 
 function SignupForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const postSignupPlan =
     searchParams.get('plan') === 'ANNUAL_PRO' ? 'ANNUAL_PRO' : null;
 
@@ -53,9 +52,14 @@ function SignupForm() {
 
   async function onSubmit(data: FormData) {
     setError(null);
+    const apiBase = getApiBaseUrl();
+    if (!apiBase) {
+      setError('API is not configured.');
+      return;
+    }
     let res: Response;
     try {
-      res = await fetch(`${API_URL}/auth/signup`, {
+      res = await fetch(`${apiBase}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

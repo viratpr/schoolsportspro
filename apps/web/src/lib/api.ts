@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { getApiBaseUrl } from './api-base';
 
 export type ApiErrorBody = { error: string; code?: string; details?: unknown };
 
@@ -40,8 +40,19 @@ export async function api<T>(
   path: string,
   options: RequestInit & { params?: Record<string, string> } = {}
 ): Promise<ApiResult<T>> {
+  const base = getApiBaseUrl();
+  if (!base) {
+    return {
+      ok: false,
+      error: {
+        message:
+          'API base URL is not configured. Set NEXT_PUBLIC_API_URL or deploy on Vercel with /api/rest.',
+        statusCode: 0,
+      },
+    };
+  }
   const { params, ...init } = options;
-  const url = new URL(path.startsWith('http') ? path : `${API_BASE}${path}`);
+  const url = new URL(path.startsWith('http') ? path : `${base}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
   const token = await getToken();
   const hasBody = init.body != null && init.body !== '';
@@ -59,7 +70,7 @@ export async function api<T>(
   } catch (err) {
     clearTimeout(timeoutId);
     const msg = err instanceof Error && err.name === 'AbortError'
-      ? `Request timed out. Is the API running at ${API_BASE}?`
+      ? `Request timed out. Is the API running at ${base}?`
       : (err instanceof Error ? err.message : 'Network error');
     return { ok: false, error: { message: msg, statusCode: 0 } };
   }

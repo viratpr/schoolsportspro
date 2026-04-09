@@ -22,7 +22,7 @@ type FormData = z.infer<typeof schema>;
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const callbackUrl = searchParams.get('callbackUrl') ?? '/app/dashboard';
   const [error, setError] = useState<string | null>(null);
 

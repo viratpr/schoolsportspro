@@ -36,7 +36,7 @@ const BILLING_CHECKOUT_KEY = 'billing_open_checkout';
 
 export default function BillingPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);

@@ -36,7 +36,7 @@ function assertOk<T>(r: ApiResult<T>): T {
 }
 
 export default function CompetitionDashboardPage() {
-  const params = useParams();
+  const params = useParams()!;
   const competitionId = params.competitionId as string;
   const { data: session } = useSession();
   const tenantId = (session?.user as { tenantId?: string })?.tenantId;
