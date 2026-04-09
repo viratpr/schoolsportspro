@@ -49,10 +49,19 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({
       where: { email: body.data.email },
     });
-    const passwordOk =
-      user?.passwordHash != null && (await bcryptCompare(body.data.password, user.passwordHash));
-    if (!user || !passwordOk) {
-      return reply.status(401).send({ error: 'Invalid email or password', code: 'UNAUTHORIZED' });
+    if (!user) {
+      return reply.status(401).send({ error: 'Invalid email or password', code: 'USER_NOT_FOUND' });
+    }
+    if (user.passwordHash == null) {
+      return reply.status(401).send({
+        error:
+          'This account has no app password—use Supabase email sign-in for this email, or ask an admin to set a password.',
+        code: 'NO_APP_PASSWORD',
+      });
+    }
+    const passwordOk = await bcryptCompare(body.data.password, user.passwordHash);
+    if (!passwordOk) {
+      return reply.status(401).send({ error: 'Invalid email or password', code: 'INVALID_PASSWORD' });
     }
     const token = app.jwt.sign(
       {

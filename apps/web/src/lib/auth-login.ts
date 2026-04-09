@@ -12,6 +12,23 @@ export type AuthLoginUser = {
 
 const AUTH_FETCH_TIMEOUT_MS = 15000;
 
+function parseAppLoginFailure(loginText: string): { message: string; code?: string } {
+  try {
+    const json = JSON.parse(loginText) as { error?: string; code?: string };
+    return {
+      message: typeof json.error === 'string' ? json.error : 'Invalid email or password',
+      code: typeof json.code === 'string' ? json.code : undefined,
+    };
+  } catch {
+    return { message: 'Invalid email or password' };
+  }
+}
+
+/** Supabase uses this string for wrong email/password or missing user. */
+function isSupabaseGenericCredentialError(message: string): boolean {
+  return /invalid login credentials|invalid email or password/i.test(message.trim());
+}
+
 function mapLoginPayload(data: {
   token: string;
   user: { id: string; email: string; name: string; role: string; tenantId: string | null };
@@ -71,6 +88,8 @@ export async function loginWithEmailPassword(email: string, password: string): P
     return mapLoginPayload(data);
   }
 
+  const appFail = parseAppLoginFailure(loginText);
+
   const supabase = getSupabaseAuthClient();
   if (supabase) {
     const { data: sbData, error: sbErr } = await supabase.auth.signInWithPassword({
@@ -78,10 +97,28 @@ export async function loginWithEmailPassword(email: string, password: string): P
       password,
     });
     if (sbErr) {
-      throw new Error(
+      const sbMsg =
         sbErr.message ||
-          'Supabase sign-in failed. Check the password, confirm the email in Supabase if required, and ensure the anon/publishable key matches your project.'
-      );
+        'Supabase sign-in failed. Check the password, confirm the email in Supabase if required, and ensure the anon/publishable key matches your project.';
+      if (appFail.code === 'NO_APP_PASSWORD') {
+        throw new Error(`${sbMsg} ${appFail.message}`);
+      }
+      if (isSupabaseGenericCredentialError(sbMsg)) {
+        if (appFail.code === 'USER_NOT_FOUND') {
+          throw new Error(
+            `${sbMsg} There is no user in the school database for this email (check spelling, run seed/migrations on this database, or sign up). If the user exists only in Supabase Auth, the password must match that user—reset it under Authentication → Users in the Supabase dashboard. After Supabase sign-in succeeds, you still need a matching row in the app User table (same email) for the bridge to finish.`
+          );
+        }
+        if (appFail.code === 'INVALID_PASSWORD') {
+          throw new Error(
+            `${sbMsg} The school app password was also wrong. If you use Supabase for this account, reset the password in Supabase or use the app password stored for your school user.`
+          );
+        }
+        throw new Error(
+          `${sbMsg} School app login failed first; Supabase rejected the same email/password. Confirm SUPABASE_URL / anon key point to the project where you created the user, and that the password is correct.`
+        );
+      }
+      throw new Error(sbMsg);
     }
     if (sbData.session?.access_token) {
       const bridgeController = new AbortController();
@@ -125,13 +162,7 @@ export async function loginWithEmailPassword(email: string, password: string): P
     );
   }
 
-  let message = 'Invalid email or password';
-  try {
-    const json = JSON.parse(loginText) as { error?: string; code?: string };
-    if (typeof json.error === 'string') message = json.error;
-  } catch {
-    // keep default
-  }
+  const { message } = parseAppLoginFailure(loginText);
   throw new Error(
     `${message} If you use Supabase Auth, set NEXT_PUBLIC_SUPABASE_URL and the JWT anon key from Supabase (Settings → API) on Vercel, and ensure a row exists in table "User" with the same email.`
   );
