@@ -1,10 +1,16 @@
 import NextAuth, { type AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-// Prefer 127.0.0.1 in dev to avoid slow IPv6 localhost resolution on Windows
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:3001' : 'http://localhost:3001');
+/** Base URL for server-side calls to the Fastify API (NextAuth authorize runs on the server). */
+function resolveApiBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  // Empty string is a common .env mistake; ?? alone does not fall through for ""
+  if (raw) return raw.replace(/\/+$/, '');
+  // Prefer 127.0.0.1 in dev to avoid slow IPv6 localhost resolution on Windows
+  return process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:3001' : 'http://localhost:3001';
+}
+
+const API_URL = resolveApiBaseUrl();
 // Use a fixed secret in development so encrypt (callback) and decrypt (session) never mismatch
 const NEXTAUTH_SECRET =
   process.env.NODE_ENV === 'production'
@@ -33,9 +39,13 @@ export const authOptions = {
           });
         } catch (err) {
           clearTimeout(timeoutId);
-          const msg = err instanceof Error && err.name === 'AbortError'
-            ? 'Auth server did not respond in time. Is the API running (pnpm dev:api)?'
-            : 'Auth server unreachable. Start the API with: pnpm dev:api';
+          const hint =
+            'Start the API (pnpm dev:api) or run both apps (pnpm dev). ' +
+            'If the API is elsewhere, set NEXT_PUBLIC_API_URL in .env.local.';
+          const msg =
+            err instanceof Error && err.name === 'AbortError'
+              ? `Auth API did not respond in time (${API_URL}). ${hint}`
+              : `Cannot reach auth API at ${API_URL}. ${hint}`;
           console.error('[auth] Login API failed at', API_URL, err);
           throw new Error(msg);
         }

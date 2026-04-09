@@ -39,8 +39,9 @@ function LoginForm() {
     });
     if (res?.error) {
       const isServerError =
-        res.error.includes('Auth server unreachable') ||
-        res.error.includes('did not respond in time');
+        res.error.includes('Cannot reach auth API') ||
+        res.error.includes('did not respond in time') ||
+        res.error.includes('NEXT_PUBLIC_API_URL');
       setError(isServerError ? res.error : 'Invalid email or password');
       return;
     }
