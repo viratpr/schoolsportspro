@@ -191,7 +191,8 @@ model User {
   tenantId             String?
   name                 String
   email                String                @unique
-  passwordHash         String
+  /// Null when the user signs in only via Supabase Auth (no app password).
+  passwordHash         String?
   role                 Role
   createdAt            DateTime              @default(now())
   tenant               Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)

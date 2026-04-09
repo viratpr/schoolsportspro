@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { createRequire } from 'node:module';
 import { randomBytes } from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
 import { prisma } from '../lib/prisma.js';
 import { z } from 'zod';
 import { signupSchema } from '../schemas/tenant.js';
@@ -11,11 +12,26 @@ const require = createRequire(import.meta.url);
 const { compare: bcryptCompare, hash: bcryptHash } = require('bcryptjs');
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().transform((e) => e.trim().toLowerCase()),
   password: z.string().min(1),
 });
 
-const forgotPasswordSchema = z.object({ email: z.string().email() });
+const forgotPasswordSchema = z.object({
+  email: z.string().email().transform((e) => e.trim().toLowerCase()),
+});
+
+const supabaseBridgeSchema = z.object({
+  accessToken: z.string().min(1, 'accessToken required'),
+});
+
+function supabaseEnv() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey =
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+  return url?.trim() && anonKey?.trim() ? { url: url.trim(), anonKey: anonKey.trim() } : null;
+}
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token required'),
@@ -33,7 +49,9 @@ export default async function authRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({
       where: { email: body.data.email },
     });
-    if (!user || !(await bcryptCompare(body.data.password, user.passwordHash))) {
+    const passwordOk =
+      user?.passwordHash != null && (await bcryptCompare(body.data.password, user.passwordHash));
+    if (!user || !passwordOk) {
       return reply.status(401).send({ error: 'Invalid email or password', code: 'UNAUTHORIZED' });
     }
     const token = app.jwt.sign(
@@ -108,6 +126,63 @@ export default async function authRoutes(app: FastifyInstance) {
       },
     });
     return reply.status(201).send({ ok: true, tenantId: tenant.id, message: 'Account created. You can sign in now.' });
+  });
+
+  /**
+   * After Supabase Auth validates the user, mint the same Fastify JWT as /auth/login
+   * if a matching Prisma User exists (role/tenant come from the app DB, not Supabase).
+   */
+  app.post<{ Body: { accessToken?: string } }>('/auth/supabase-bridge', async (request, reply) => {
+    const body = supabaseBridgeSchema.safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({
+        error: 'accessToken required',
+        code: 'VALIDATION_ERROR',
+      });
+    }
+    const env = supabaseEnv();
+    if (!env) {
+      return reply.status(503).send({
+        error: 'Supabase is not configured on the API.',
+        code: 'SUPABASE_DISABLED',
+      });
+    }
+    const supabase = createClient(env.url, env.anonKey);
+    const { data: authData, error } = await supabase.auth.getUser(body.data.accessToken);
+    if (error || !authData.user?.email) {
+      return reply.status(401).send({
+        error: 'Invalid or expired Supabase session',
+        code: 'UNAUTHORIZED',
+      });
+    }
+    const email = authData.user.email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return reply.status(403).send({
+        error:
+          'No application profile for this account. Use an email your school admin added in the app, or sign up to create a school.',
+        code: 'NOT_PROVISIONED',
+      });
+    }
+    const token = app.jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId ?? null,
+      },
+      { expiresIn: '7d' }
+    );
+    return reply.send({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        tenantId: user.tenantId,
+      },
+    });
   });
 
   app.post<{ Body: { email?: string } }>('/auth/forgot-password', async (request, reply) => {

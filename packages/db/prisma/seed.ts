@@ -192,7 +192,12 @@ async function createTenantWithStudents(index: number) {
       role: Role.SCHOOL_ADMIN,
       tenantId: tenant.id,
     },
-    update: {},
+    update: {
+      name: `${name} Admin`,
+      passwordHash: schoolAdminHash,
+      role: Role.SCHOOL_ADMIN,
+      tenantId: tenant.id,
+    },
   });
 
   const startAdmission = index * 1000;
@@ -233,20 +238,21 @@ async function createTenantWithStudents(index: number) {
 async function main() {
   const passwordHash = await bcrypt.hash('Admin@1234', 10);
 
-  const existingAdmin = await prisma.user.findUnique({
+  await prisma.user.upsert({
     where: { email: 'admin@platform.local' },
+    create: {
+      email: 'admin@platform.local',
+      name: 'Platform Admin',
+      passwordHash,
+      role: Role.PLATFORM_ADMIN,
+    },
+    update: {
+      name: 'Platform Admin',
+      passwordHash,
+      role: Role.PLATFORM_ADMIN,
+    },
   });
-  if (!existingAdmin) {
-    await prisma.user.create({
-      data: {
-        email: 'admin@platform.local',
-        name: 'Platform Admin',
-        passwordHash,
-        role: Role.PLATFORM_ADMIN,
-      },
-    });
-    console.log('Created platform admin (admin@platform.local / Admin@1234)');
-  }
+  console.log('Platform admin (admin@platform.local / Admin@1234) upserted.');
 
   for (const s of SPORTS) {
     const templateVariants = sportTemplateByKey[s.name];
@@ -312,7 +318,12 @@ async function main() {
       role: Role.SCHOOL_ADMIN,
       tenantId: demoSchool.id,
     },
-    update: {},
+    update: {
+      name: 'School Admin',
+      passwordHash: schoolAdminHash,
+      role: Role.SCHOOL_ADMIN,
+      tenantId: demoSchool.id,
+    },
   });
   console.log('Demo tenant and school admin (admin@demoschool.local / School@1234) ready.');
 

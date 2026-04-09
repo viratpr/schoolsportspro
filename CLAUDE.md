@@ -53,10 +53,12 @@ Environment variables needed: `DATABASE_URL`, `JWT_SECRET`, `NEXTAUTH_URL`, `NEX
 
 ### Authentication Flow
 
-1. User logs in via Next.js → NextAuth CredentialsProvider calls `POST /auth/login` on the API
-2. API validates credentials, returns a JWT + user data
-3. NextAuth stores the JWT in its own session (JWT strategy)
-4. Web client attaches the JWT from the session to every API call via `Authorization: Bearer`
+1. User submits email/password on the login page → NextAuth `authorize` runs [`loginWithEmailPassword`](apps/web/src/lib/auth-login.ts).
+2. **Primary:** `POST /auth/login` — Prisma `User` + bcrypt `passwordHash` (omit or null `passwordHash` for Supabase-only profiles).
+3. **Fallback (if Supabase env is set):** `signInWithPassword` via `@supabase/supabase-js`, then `POST /auth/supabase-bridge` with the access token; API checks the token and loads the same Prisma `User` by email, then mints the app JWT.
+4. NextAuth stores that JWT in the session; the web client sends `Authorization: Bearer` to the API.
+
+Supabase env (web + API): `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`. See [`.env.example`](.env.example).
 
 ### API Design
 
