@@ -2,15 +2,19 @@ import NextAuth, { type AuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 /** Base URL for server-side calls to the Fastify API (NextAuth authorize runs on the server). */
-function resolveApiBaseUrl(): string {
+function resolveApiBaseUrl(): string | null {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
   // Empty string is a common .env mistake; ?? alone does not fall through for ""
   if (raw) return raw.replace(/\/+$/, '');
-  // Prefer 127.0.0.1 in dev to avoid slow IPv6 localhost resolution on Windows
-  return process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:3001' : 'http://localhost:3001';
+  if (process.env.NODE_ENV === 'development') {
+    // Prefer 127.0.0.1 in dev to avoid slow IPv6 localhost resolution on Windows
+    return 'http://127.0.0.1:3001';
+  }
+  // Hosted production: localhost is never valid from Vercel's servers — require explicit URL
+  return null;
 }
 
-const API_URL = resolveApiBaseUrl();
+const API_BASE_URL = resolveApiBaseUrl();
 // Use a fixed secret in development so encrypt (callback) and decrypt (session) never mismatch
 const NEXTAUTH_SECRET =
   process.env.NODE_ENV === 'production'
@@ -27,11 +31,16 @@ export const authOptions = {
       credentials: { email: { label: 'Email', type: 'email' }, password: { label: 'Password', type: 'password' } },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        if (!API_BASE_URL) {
+          throw new Error(
+            'NEXT_PUBLIC_API_URL is not set. For a deployed site, add it under your host (e.g. Vercel → Project → Settings → Environment Variables) to your public API URL (https://…), then redeploy the web app.'
+          );
+        }
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), AUTH_FETCH_TIMEOUT_MS);
         let res: Response;
         try {
-          res = await fetch(`${API_URL}/auth/login`, {
+          res = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: credentials.email, password: credentials.password }),
@@ -39,14 +48,15 @@ export const authOptions = {
           });
         } catch (err) {
           clearTimeout(timeoutId);
-          const hint =
-            'Start the API (pnpm dev:api) or run both apps (pnpm dev). ' +
-            'If the API is elsewhere, set NEXT_PUBLIC_API_URL in .env.local.';
+          const isDev = process.env.NODE_ENV === 'development';
+          const hint = isDev
+            ? 'Start the API: pnpm dev:api or pnpm dev. If it uses another port, set NEXT_PUBLIC_API_URL in apps/web/.env.local (e.g. http://127.0.0.1:3010).'
+            : 'Confirm NEXT_PUBLIC_API_URL points to your live API (https), not localhost, and redeploy the web app after env changes.';
           const msg =
             err instanceof Error && err.name === 'AbortError'
-              ? `Auth API did not respond in time (${API_URL}). ${hint}`
-              : `Cannot reach auth API at ${API_URL}. ${hint}`;
-          console.error('[auth] Login API failed at', API_URL, err);
+              ? `Auth API did not respond in time (${API_BASE_URL}). ${hint}`
+              : `Cannot reach auth API at ${API_BASE_URL}. ${hint}`;
+          console.error('[auth] Login API failed at', API_BASE_URL, err);
           throw new Error(msg);
         }
         clearTimeout(timeoutId);
