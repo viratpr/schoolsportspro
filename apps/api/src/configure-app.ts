@@ -1,3 +1,7 @@
+/**
+ * Fastify bootstrap (plugins + routes). Named configure-app.ts so Vercel does not treat this file
+ * as a second Fastify entrypoint alongside src/index.ts (which would break deploys).
+ */
 import type { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import fjwt from '@fastify/jwt';

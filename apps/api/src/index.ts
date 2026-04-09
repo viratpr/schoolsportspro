@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { configureApp } from './app.js';
+import { configureApp } from './configure-app.js';
 
 const app = Fastify({ logger: true });
 await configureApp(app);
