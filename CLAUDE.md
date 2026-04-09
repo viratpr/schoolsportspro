@@ -18,6 +18,7 @@ pnpm free:api-port    # Kill whatever is running on port 3001
 
 # Database
 pnpm db:generate      # Regenerate Prisma client after schema changes
+pnpm db:ping          # Run `SELECT 1` against DATABASE_URL (verify Supabase/local DB)
 pnpm db:migrate       # Run migrations (dev)
 pnpm db:seed          # Seed with demo data (school, users, competition)
 

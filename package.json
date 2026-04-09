@@ -13,6 +13,7 @@
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "db:generate": "pnpm --filter @bharatathlete/db prisma:generate",
+    "db:ping": "pnpm --filter @bharatathlete/db run db:ping",
     "db:migrate": "pnpm --filter @bharatathlete/db prisma:migrate",
     "db:seed": "pnpm --filter @bharatathlete/db prisma:seed",
     "test:e2e": "playwright test",
