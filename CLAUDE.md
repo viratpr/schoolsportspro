@@ -20,6 +20,9 @@ pnpm free:api-port    # Kill whatever is running on port 3001
 pnpm db:generate      # Regenerate Prisma client after schema changes
 pnpm db:ping          # Run `SELECT 1` against DATABASE_URL (verify Supabase/local DB)
 pnpm db:migrate       # Run migrations (dev)
+pnpm db:migrate:deploy # Apply pending migrations (Prisma; use if `migrate` on PATH is the wrong tool)
+pnpm db:baseline       # Mark all migrations applied (fixes Supabase P3005 if DB already matches repo; see packages/db/scripts/prisma-baseline-all.mjs)
+pnpm db:repair-drift   # Apply missing DDL if baseline ran on an out-of-date DB (Sport/CompetitionSport/User columns; see prisma/repair-after-false-baseline.sql)
 pnpm db:seed          # Seed with demo data (school, users, competition)
 
 # Build & Lint

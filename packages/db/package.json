@@ -16,6 +16,9 @@
     "prisma:generate": "prisma generate",
     "db:ping": "dotenv -e ../../.env -- prisma db execute --file prisma/db-ping.sql --schema prisma/schema.prisma && node -e \"console.log('db:ping OK: DATABASE_URL accepted the query (SELECT 1).')\"",
     "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "prisma:migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "prisma:baseline": "dotenv -e ../../.env -- node scripts/prisma-baseline-all.mjs",
+    "prisma:repair-drift": "dotenv -e ../../.env -- prisma db execute --file prisma/repair-after-false-baseline.sql --schema prisma/schema.prisma",
     "prisma:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "create-platform-admin": "tsx scripts/create-platform-admin.ts"
   },

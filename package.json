@@ -15,6 +15,9 @@
     "db:generate": "pnpm --filter @bharatathlete/db prisma:generate",
     "db:ping": "pnpm --filter @bharatathlete/db run db:ping",
     "db:migrate": "pnpm --filter @bharatathlete/db prisma:migrate",
+    "db:migrate:deploy": "pnpm --filter @bharatathlete/db exec dotenv -e ../../.env -- prisma migrate deploy",
+    "db:baseline": "pnpm --filter @bharatathlete/db prisma:baseline",
+    "db:repair-drift": "pnpm --filter @bharatathlete/db prisma:repair-drift",
     "db:seed": "pnpm --filter @bharatathlete/db prisma:seed",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"

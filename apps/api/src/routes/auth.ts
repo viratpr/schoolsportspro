@@ -29,7 +29,7 @@ function supabaseEnv() {
   const anonKey =
     process.env.SUPABASE_ANON_KEY ??
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY; // prefer anon JWT on Vercel; publishable last
   return url?.trim() && anonKey?.trim() ? { url: url.trim(), anonKey: anonKey.trim() } : null;
 }
 
