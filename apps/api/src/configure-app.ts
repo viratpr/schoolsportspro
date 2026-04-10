@@ -95,6 +95,15 @@ export async function configureApp(app: FastifyInstance): Promise<void> {
   await app.register(billingRoutes);
   await app.register(inventoryRoutes);
 
+  // /api/rest with no extra path → Fastify sees GET / (Vercel probes, bookmarks, etc.)
+  app.get('/', async (_, reply) => {
+    return reply.send({
+      ok: true,
+      service: 'bharatathlete-api',
+      health: '/health',
+    });
+  });
+
   app.get('/health', async (_, reply) => {
     return reply.send({ status: 'ok' });
   });
