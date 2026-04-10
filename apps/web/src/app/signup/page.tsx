@@ -84,17 +84,41 @@ function SignupForm() {
       return;
     }
 
+    const bodyText = await res.text();
+
     if (res.status === 502 || res.status === 503 || res.status === 504) {
-      setError('The service is temporarily unavailable. Please try again in a few minutes.');
+      let fromApi = '';
+      try {
+        const j = JSON.parse(bodyText) as { error?: string };
+        if (typeof j.error === 'string') fromApi = ` ${j.error}`;
+      } catch {
+        /* ignore */
+      }
+      setError(
+        `Server error (${res.status}).${fromApi} On Vercel this usually means /api/rest could not run or reach Postgres. Set DATABASE_URL to your Supabase pooler (6543) with pgbouncer=true, redeploy, open /api/rest/health, and check Deployment → Logs.`
+      );
+      return;
+    }
+
+    let json: Record<string, unknown> = {};
+    try {
+      json = bodyText ? (JSON.parse(bodyText) as Record<string, unknown>) : {};
+    } catch {
+      json = {};
+    }
+
+    if (!res.ok) {
+      setError(
+        typeof json.error === 'string'
+          ? json.error
+          : typeof json.message === 'string'
+            ? json.message
+            : 'Signup failed',
+      );
       return;
     }
 
     try {
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof json.error === 'string' ? json.error : json.message || 'Signup failed');
-        return;
-      }
       const signInResult = await signIn('credentials', {
         email: data.adminEmail,
         password: data.password,

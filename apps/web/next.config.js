@@ -56,6 +56,10 @@ mergeEnvFileIntoProcess(path.join(repoRoot, '.env'));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Monorepo: trace Prisma / hoisted deps from repo root so Vercel bundles query engines.
+  outputFileTracingRoot: repoRoot,
+  // Do not webpack-bundle Prisma; avoids missing libquery_engine-* on serverless (see pris.ly/d/engine-not-found-nextjs).
+  serverExternalPackages: ['@prisma/client'],
   transpilePackages: ['@bharatathlete/api'],
   /** API package uses NodeNext `.js` specifiers in TS sources; map them for webpack. */
   webpack: (config) => {
