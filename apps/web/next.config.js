@@ -53,19 +53,60 @@ loadRootEnvWithNext();
 // Backfill any keys still missing (covers silent failures and edge cases).
 mergeEnvFileIntoProcess(path.join(repoRoot, '.env'));
 
+/** Paths relative to apps/web for Next output file tracing (pnpm: engines live under .pnpm). */
+function prismaTracingIncludeGlobs() {
+  try {
+    const webRequire = createRequire(path.join(__dirname, 'package.json'));
+    const clientPkg = webRequire.resolve('@prisma/client/package.json');
+    const clientDir = path.dirname(clientPkg);
+    const enginesDir = path.join(clientDir, '..', '.prisma', 'client');
+    const rel = (abs) => path.relative(__dirname, abs).split(path.sep).join('/');
+    return [`${rel(clientDir)}/**/*`, `${rel(enginesDir)}/**/*`];
+  } catch (e) {
+    console.warn('[next.config] prismaTracingIncludeGlobs fallback:', e && e.message);
+    return [
+      '../../node_modules/.pnpm/**/node_modules/.prisma/client/**/*',
+      '../../node_modules/.pnpm/**/node_modules/@prisma/client/**/*',
+    ];
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Monorepo: trace Prisma / hoisted deps from repo root so Vercel bundles query engines.
-  outputFileTracingRoot: repoRoot,
-  // Do not webpack-bundle Prisma; avoids missing libquery_engine-* on serverless (see pris.ly/d/engine-not-found-nextjs).
-  serverExternalPackages: ['@prisma/client'],
+  // Next.js 14.2: tracing + externals live under experimental (top-level keys are ignored).
+  experimental: {
+    outputFileTracingRoot: repoRoot,
+    outputFileTracingIncludes: {
+      '/api/**/*': prismaTracingIncludeGlobs(),
+    },
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
   transpilePackages: ['@bharatathlete/api'],
   /** API package uses NodeNext `.js` specifiers in TS sources; map them for webpack. */
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.resolve.extensionAlias = {
       '.js': ['.ts', '.js', '.tsx', '.jsx'],
     };
+    if (isServer) {
+      const prismaExternal = ({ request }, callback) => {
+        if (
+          request === '@prisma/client' ||
+          (typeof request === 'string' && request.startsWith('@prisma/client/'))
+        ) {
+          return callback(null, `commonjs ${request}`);
+        }
+        callback();
+      };
+      const prev = config.externals;
+      if (Array.isArray(prev)) {
+        config.externals = [...prev, prismaExternal];
+      } else if (typeof prev === 'function') {
+        config.externals = [prev, prismaExternal];
+      } else {
+        config.externals = prismaExternal;
+      }
+    }
     return config;
   },
   // Do not use `env` to inject NEXTAUTH_* here: that inlines values at **build** time, so production
