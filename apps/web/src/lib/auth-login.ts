@@ -121,11 +121,13 @@ export async function loginWithEmailPassword(email: string, password: string): P
             `${sbMsg} The app database rejected the password for this email. On Vercel, DATABASE_URL must point at the same Postgres where you ran pnpm db:seed (demo: admin@demoschool.local / School@1234). Supabase Auth was also tried and failed—its password is separate; reset under Authentication → Users if you use Supabase. To debug app-only login, set NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false.`
           );
         }
-        // Unexpected API code, non-JSON body, or older API without login codes
+        // Unexpected API code, non-JSON 401, wrong API base (e.g. NEXT_PUBLIC_API_URL without /api/rest), or older API
         const apiHint =
           appFail.code != null
             ? ` API returned code "${appFail.code}" (HTTP ${loginRes.status}).`
-            : ` API returned HTTP ${loginRes.status} with no login code (redeploy latest web+API, or response was not JSON).`;
+            : loginRes.status === 401
+              ? ` School app API returned HTTP 401 without a login code—often NEXT_PUBLIC_API_URL is only your site origin; it must end with /api/rest for this deploy (or unset it to use same-origin /api/rest). Also confirm DATABASE_URL on Vercel matches the DB you seeded.`
+              : ` API returned HTTP ${loginRes.status} with no login code (redeploy latest web+API, or response was not JSON).`;
         throw new Error(
           `${sbMsg} School app login failed first.${apiHint} On Vercel, set DATABASE_URL to the Postgres you seeded, redeploy, then try admin@demoschool.local / School@1234. Match NEXT_PUBLIC_SUPABASE_* to the same Supabase project, or set NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false to test app login only.`
         );

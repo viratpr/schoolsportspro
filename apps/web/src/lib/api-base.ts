@@ -2,7 +2,8 @@
  * Base URL for the Fastify REST API (HTTP calls from browser or Next server).
  *
  * - Set `NEXT_PUBLIC_API_URL` to override (e.g. `http://127.0.0.1:3001` for local two-process dev,
- *   or `https://your-domain.com/api/rest` for an explicit single-origin deploy).
+ *   or `https://your-domain.com/api/rest` for an explicit single-origin deploy). Origins with path `/`
+ *   only get `/api/rest` appended automatically (except direct Fastify on 127.0.0.1:3001).
  * - If unset: dev uses :3001; production browser uses same origin + `/api/rest`; production
  *   serverless uses `https://${VERCEL_URL}/api/rest` when `VERCEL_URL` is set.
  * - Loopback `NEXT_PUBLIC_API_URL` is ignored (1) on the server when `VERCEL=1`, and (2) in the
@@ -25,6 +26,30 @@ function isLoopbackApiHost(base: string): boolean {
   }
 }
 
+/**
+ * If env is set to only the site origin (path / or empty), login hits /auth/login on Next.js and
+ * often gets a non-JSON 401. Single-origin Vercel deploys must use …/api/rest (or leave env unset).
+ */
+function ensureApiRestPath(base: string): string {
+  try {
+    const u = new URL(base);
+    const normalizedPath = u.pathname.replace(/\/+$/, '') || '/';
+    if (normalizedPath !== '/') {
+      return base.replace(/\/+$/, '');
+    }
+    const port = u.port;
+    const loopback = isLoopbackApiHost(base);
+    const directFastifyLocal = loopback && port === '3001';
+    if (directFastifyLocal) {
+      return base.replace(/\/+$/, '');
+    }
+    const root = base.replace(/\/+$/, '');
+    return `${root}/api/rest`;
+  } catch {
+    return base;
+  }
+}
+
 export function getApiBaseUrl(): string | null {
   const onVercelServer = process.env.VERCEL === '1';
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -40,7 +65,7 @@ export function getApiBaseUrl(): string | null {
       (onVercelServer && isLoopbackApiHost(fromEnv)) ||
       (browserOnDeployedHost && isLoopbackApiHost(fromEnv));
     if (!ignoreLoopbackEnv) {
-      return fromEnv;
+      return ensureApiRestPath(fromEnv);
     }
   }
 
