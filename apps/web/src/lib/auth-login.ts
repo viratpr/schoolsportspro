@@ -12,6 +12,15 @@ export type AuthLoginUser = {
 
 const AUTH_FETCH_TIMEOUT_MS = 15000;
 
+/** Short message in production; full detail in logs (Vercel / terminal). */
+function throwLoginError(userFacing: string, diagnostic: string): never {
+  console.error('[auth-login]', diagnostic);
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(userFacing);
+  }
+  throw new Error(`${userFacing}\n\n${diagnostic}`);
+}
+
 function parseAppLoginFailure(loginText: string): { message: string; code?: string } {
   try {
     const json = JSON.parse(loginText) as { error?: string; code?: string };
@@ -108,31 +117,39 @@ export async function loginWithEmailPassword(email: string, password: string): P
         sbErr.message ||
         'Supabase sign-in failed. Check the password, confirm the email in Supabase if required, and ensure the anon/publishable key matches your project.';
       if (appFail.code === 'NO_APP_PASSWORD') {
-        throw new Error(`${sbMsg} ${appFail.message}`);
+        throwLoginError(
+          'This account has no password in the school app. Use your school’s sign-in link or reset your password.',
+          `${sbMsg} ${appFail.message}`
+        );
       }
       if (isSupabaseGenericCredentialError(sbMsg)) {
         if (appFail.code === 'USER_NOT_FOUND') {
-          throw new Error(
-            `${sbMsg} There is no user in the school database for this email (check spelling, run seed/migrations on this database, or sign up). If the user exists only in Supabase Auth, the password must match that user—reset it under Authentication → Users in the Supabase dashboard. After Supabase sign-in succeeds, you still need a matching row in the app User table (same email) for the bridge to finish.`
+          throwLoginError(
+            'Sign-in failed. There is no school account for this email, or the password is wrong.',
+            `${sbMsg} No User row in the app database for this email (check spelling, run migrations/seed, or sign up). Supabase Auth password is separate—reset in the Supabase dashboard if needed. Bridge still requires a matching app User row.`
           );
         }
         if (appFail.code === 'INVALID_PASSWORD') {
-          throw new Error(
-            `${sbMsg} The app database rejected the password for this email. On Vercel, DATABASE_URL must point at the same Postgres where you ran pnpm db:seed (demo: admin@demoschool.local / School@1234). Supabase Auth was also tried and failed—its password is separate; reset under Authentication → Users if you use Supabase. To debug app-only login, set NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false.`
+          throwLoginError(
+            'Sign-in failed. Wrong email or password for this school account.',
+            `${sbMsg} App DB rejected the password. On Vercel, DATABASE_URL must be the Postgres where you ran pnpm db:seed (demo: admin@demoschool.local / School@1234). Supabase sign-in was also tried and failed. Set NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false to test app login only.`
           );
         }
-        // Unexpected API code, non-JSON 401, wrong API base (e.g. NEXT_PUBLIC_API_URL without /api/rest), or older API
         const apiHint =
           appFail.code != null
-            ? ` API returned code "${appFail.code}" (HTTP ${loginRes.status}).`
+            ? `API returned code "${appFail.code}" (HTTP ${loginRes.status}).`
             : loginRes.status === 401
-              ? ` School app API returned HTTP 401 without a login code—often NEXT_PUBLIC_API_URL is only your site origin; it must end with /api/rest for this deploy (or unset it to use same-origin /api/rest). Also confirm DATABASE_URL on Vercel matches the DB you seeded.`
-              : ` API returned HTTP ${loginRes.status} with no login code (redeploy latest web+API, or response was not JSON).`;
-        throw new Error(
-          `${sbMsg} School app login failed first.${apiHint} On Vercel, set DATABASE_URL to the Postgres you seeded, redeploy, then try admin@demoschool.local / School@1234. Match NEXT_PUBLIC_SUPABASE_* to the same Supabase project, or set NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false to test app login only.`
+              ? 'API returned HTTP 401 without a login code (wrong API route, non-JSON body, or old deploy). Server-side Vercel login uses VERCEL_URL + /api/rest; confirm DATABASE_URL matches the seeded database.'
+              : `API returned HTTP ${loginRes.status} with no login code (response not JSON or old API).`;
+        throwLoginError(
+          'Sign-in failed. Check your email and password. If you deploy this app, confirm DATABASE_URL points to your seeded database and redeploy.',
+          `${sbMsg} School app login failed first. ${apiHint} Match NEXT_PUBLIC_SUPABASE_* to your project or set NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false.`
         );
       }
-      throw new Error(sbMsg);
+      throwLoginError(
+        'Sign-in failed. Try again or contact support.',
+        sbMsg
+      );
     }
     if (sbData.session?.access_token) {
       const bridgeController = new AbortController();
@@ -178,13 +195,11 @@ export async function loginWithEmailPassword(email: string, password: string): P
 
   const { message } = parseAppLoginFailure(loginText);
   const allowSb = supabaseLoginFallbackEnabled();
-  let suffix =
-    ' The school app database rejected this login (Prisma /auth/login). On Vercel set DATABASE_URL to the same Postgres where you ran pnpm db:seed, redeploy, then try admin@demoschool.local / School@1234.';
-  if (!allowSb) {
-    suffix += ' Supabase fallback is off (NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false).';
-  } else {
-    suffix +=
-      ' Supabase was not tried—add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (Settings → API) on Vercel if you want a second sign-in step after app login fails.';
-  }
-  throw new Error(`${message}${suffix}`);
+  const detailSb = !allowSb
+    ? 'Supabase fallback is off (NEXT_PUBLIC_AUTH_SUPABASE_FALLBACK=false).'
+    : 'Supabase was not configured (add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY) so only app DB login ran.';
+  throwLoginError(
+    'Sign-in failed. Wrong email or password, or this account is not in the school database.',
+    `${message} Prisma /auth/login rejected this login. On Vercel, DATABASE_URL must be the Postgres where you ran pnpm db:seed. ${detailSb}`
+  );
 }

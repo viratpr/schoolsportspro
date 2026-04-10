@@ -6,6 +6,8 @@
  *   only get `/api/rest` appended automatically (except direct Fastify on 127.0.0.1:3001).
  * - If unset: dev uses :3001; production browser uses same origin + `/api/rest`; production
  *   serverless uses `https://${VERCEL_URL}/api/rest` when `VERCEL_URL` is set.
+ * - On Vercel **server** (NextAuth, Route Handlers), `VERCEL_URL` is always used for the API base so
+ *   login is not broken by a mis-set `NEXT_PUBLIC_API_URL` (client bundles still use public env / origin).
  * - Loopback `NEXT_PUBLIC_API_URL` is ignored (1) on the server when `VERCEL=1`, and (2) in the
  *   browser when the page is not served from localhost — `VERCEL` is not available in client
  *   bundles, so we key off `window.location.hostname` for signup and other client fetches.
@@ -52,6 +54,17 @@ function ensureApiRestPath(base: string): string {
 
 export function getApiBaseUrl(): string | null {
   const onVercelServer = process.env.VERCEL === '1';
+  const vercelHost = process.env.VERCEL_URL?.trim();
+
+  const serverApiOverride = process.env.SERVER_API_BASE_URL?.trim();
+  if (onVercelServer && serverApiOverride && typeof window === 'undefined') {
+    return ensureApiRestPath(serverApiOverride.replace(/\/+$/, ''));
+  }
+
+  if (onVercelServer && vercelHost && typeof window === 'undefined') {
+    return `https://${vercelHost}/api/rest`;
+  }
+
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
   const fromEnv = raw ? raw.replace(/\/+$/, '') : '';
 
@@ -75,7 +88,6 @@ export function getApiBaseUrl(): string | null {
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api/rest`;
   }
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel}/api/rest`;
+  if (vercelHost) return `https://${vercelHost}/api/rest`;
   return null;
 }
