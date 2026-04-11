@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { apiGet, apiPatch, ApiClientError, ApiResult } from '@/lib/api';
+import { apiGetTenantCompetitions, apiPatch, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,7 +62,7 @@ export default function CompetitionsPage() {
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['tenants', tenantId, 'competitions'],
-    queryFn: async () => assertOk(await apiGet<ListRes>(`/tenants/${tenantId}/competitions`)),
+    queryFn: async () => assertOk(await apiGetTenantCompetitions<ListRes>(tenantId!)),
     enabled: !!tenantId,
     retry: 1,
   });
@@ -173,10 +173,9 @@ export default function CompetitionsPage() {
           <p className="font-medium text-destructive">{error instanceof Error ? error.message : 'Failed to load competitions'}</p>
           {error instanceof Error && /timed out/i.test(error.message) && (
             <p className="mt-2 text-muted-foreground text-sm">
-              Local: run{' '}
-              <code className="bg-muted px-1 rounded">pnpm --filter @bharatathlete/api dev</code>. Vercel: check
-              Deployment → Logs, <code className="bg-muted px-1 rounded">DATABASE_URL</code> (pooler), and that{' '}
-              <code className="bg-muted px-1 rounded">vercel.json</code> sets maxDuration for /api/rest (free Hobby plan allows up to 60s when configured).
+              The competitions list uses a fast Next.js route. If you still see timeouts, check{' '}
+              <code className="bg-muted px-1 rounded">DATABASE_URL</code> and Deployment → Logs. Local full API:{' '}
+              <code className="bg-muted px-1 rounded">pnpm --filter @bharatathlete/api dev</code>.
             </p>
           )}
         </div>

@@ -8,6 +8,9 @@
     },
     "pages/api/rest/[[...slug]].ts": {
       "maxDuration": 60
+    },
+    "src/app/api/tenants/[tenantId]/competitions/route.ts": {
+      "maxDuration": 60
     }
   }
 }

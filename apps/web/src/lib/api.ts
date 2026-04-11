@@ -63,6 +63,20 @@ const API_TIMEOUT_MS = (() => {
   }
   return 45000;
 })();
+
+/** Thin Next.js routes (Prisma only) — shorter ceiling; avoids waiting on full Fastify cold start. */
+const NEXT_INTERNAL_API_TIMEOUT_MS = 20000;
+
+function getNextAppOrigin(): string {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  const nextAuth = process.env.NEXTAUTH_URL?.trim();
+  if (nextAuth) return nextAuth.replace(/\/+$/, '');
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+  return 'http://127.0.0.1:3000';
+}
 const TOKEN_CACHE_TTL_MS = 30000;
 let cachedToken: string | null | undefined;
 let cachedTokenExpiresAt = 0;
@@ -136,6 +150,49 @@ export async function api<T>(
   }
   if (res.status === 204) return { ok: true, data: undefined as T };
   const data = await res.json().catch(() => ({})) as T;
+  return { ok: true, data };
+}
+
+/**
+ * Lists competitions for a tenant via a lightweight Next route (Prisma + JWT).
+ * Prefer this over `apiGet('/tenants/.../competitions')` on Vercel to avoid cold-starting the full Fastify stack.
+ */
+export async function apiGetTenantCompetitions<T>(
+  tenantId: string,
+  params?: Record<string, string>
+): Promise<ApiResult<T>> {
+  const origin = getNextAppOrigin();
+  const url = new URL(`${origin}/api/tenants/${encodeURIComponent(tenantId)}/competitions`);
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const token = await getToken();
+  const headers: HeadersInit = {};
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), NEXT_INTERNAL_API_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), { method: 'GET', headers, signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    const msg =
+      err instanceof Error && err.name === 'AbortError'
+        ? `Request timed out after ${NEXT_INTERNAL_API_TIMEOUT_MS / 1000}s while loading competitions.`
+        : err instanceof Error
+          ? err.message
+          : 'Network error';
+    return { ok: false, error: { message: msg, statusCode: 0 } };
+  }
+  clearTimeout(timeoutId);
+
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as ApiErrorBody;
+    const message =
+      (typeof data?.error === 'string' ? data.error : null) ??
+      (res.statusText || `Request failed (${res.status})`);
+    return { ok: false, error: { message, statusCode: res.status, code: data?.code, details: data?.details } };
+  }
+  const data = (await res.json().catch(() => ({}))) as T;
   return { ok: true, data };
 }
 

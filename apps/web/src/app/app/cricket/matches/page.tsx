@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { apiGet, ApiClientError, ApiResult } from '@/lib/api';
+import { apiGet, apiGetTenantCompetitions, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -68,7 +68,7 @@ export default function CricketMatchesPage() {
 
   const { data: comps } = useQuery({
     queryKey: ['tenants', tenantId, 'competitions'],
-    queryFn: async () => assertOk(await apiGet<CompetitionsRes>(`/tenants/${tenantId}/competitions`)),
+    queryFn: async () => assertOk(await apiGetTenantCompetitions<CompetitionsRes>(tenantId!)),
     enabled: !!tenantId,
   });
 

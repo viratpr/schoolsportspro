@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
+import { apiGet, apiGetTenantCompetitions, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,7 +59,7 @@ export default function NewCricketMatchPage() {
 
   const { data: comps } = useQuery({
     queryKey: ['tenants', tenantId, 'competitions'],
-    queryFn: async () => assertOk(await apiGet<{ data: Competition[] }>(`/tenants/${tenantId}/competitions`)),
+    queryFn: async () => assertOk(await apiGetTenantCompetitions<{ data: Competition[] }>(tenantId!)),
     enabled: !!tenantId,
   });
 
