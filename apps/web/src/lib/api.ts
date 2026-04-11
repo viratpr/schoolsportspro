@@ -196,6 +196,49 @@ export async function apiGetTenantCompetitions<T>(
   return { ok: true, data };
 }
 
+/**
+ * Loads competition page overview via lightweight Next route (competition + enabled sports + categories).
+ * This avoids N+1 calls through /api/rest when opening saved competitions.
+ */
+export async function apiGetCompetitionOverview<T>(
+  tenantId: string,
+  competitionId: string
+): Promise<ApiResult<T>> {
+  const origin = getNextAppOrigin();
+  const url = new URL(
+    `${origin}/api/tenants/${encodeURIComponent(tenantId)}/competitions/${encodeURIComponent(competitionId)}/overview`
+  );
+  const token = await getToken();
+  const headers: HeadersInit = {};
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), NEXT_INTERNAL_API_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), { method: 'GET', headers, signal: controller.signal });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    const msg =
+      err instanceof Error && err.name === 'AbortError'
+        ? `Request timed out after ${NEXT_INTERNAL_API_TIMEOUT_MS / 1000}s while loading competition overview.`
+        : err instanceof Error
+          ? err.message
+          : 'Network error';
+    return { ok: false, error: { message: msg, statusCode: 0 } };
+  }
+  clearTimeout(timeoutId);
+
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as ApiErrorBody;
+    const message =
+      (typeof data?.error === 'string' ? data.error : null) ??
+      (res.statusText || `Request failed (${res.status})`);
+    return { ok: false, error: { message, statusCode: res.status, code: data?.code, details: data?.details } };
+  }
+  const data = (await res.json().catch(() => ({}))) as T;
+  return { ok: true, data };
+}
 export const apiGet = <T>(path: string, params?: Record<string, string>) =>
   api<T>(path, { method: 'GET', params });
 export const apiPost = <T>(path: string, body?: unknown) =>
@@ -205,3 +248,4 @@ export const apiPut = <T>(path: string, body?: unknown) =>
 export const apiPatch = <T>(path: string, body?: unknown) =>
   api<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined });
 export const apiDelete = <T>(path: string) => api<T>(path, { method: 'DELETE' });
+

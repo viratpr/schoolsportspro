@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { apiGet, apiPost, ApiClientError, ApiResult } from '@/lib/api';
+import { apiGetCompetitionOverview, apiPost, ApiClientError, ApiResult } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,9 +26,13 @@ type CompetitionSport = {
   sportId: string;
   enabled: boolean;
   sport: { id: string; name: string; sportType: string };
+  categories: Category[];
 };
 type Category = { id: string; name: string; gender: string; format: string };
-type CategoriesRes = { data: Category[] };
+type CompetitionOverviewRes = {
+  competition: Competition;
+  sports: CompetitionSport[];
+};
 
 function assertOk<T>(r: ApiResult<T>): T {
   if (!r.ok) throw new ApiClientError(r.error.message, r.error.statusCode, r.error.code, r.error.details);
@@ -43,35 +47,14 @@ export default function CompetitionDashboardPage() {
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
 
-  const { data: competition, isLoading: compLoading } = useQuery({
-    queryKey: ['tenants', tenantId, 'competitions', competitionId],
-    queryFn: async () => assertOk(await apiGet<Competition>(`/tenants/${tenantId}/competitions/${competitionId}`)),
+  const { data: overview, isLoading: overviewLoading } = useQuery({
+    queryKey: ['tenants', tenantId, 'competitions', competitionId, 'overview'],
+    queryFn: async () => assertOk(await apiGetCompetitionOverview<CompetitionOverviewRes>(tenantId!, competitionId)),
     enabled: !!tenantId && !!competitionId,
   });
 
-  const { data: sportsData } = useQuery({
-    queryKey: ['tenants', tenantId, 'competitions', competitionId, 'sports'],
-    queryFn: async () => assertOk(await apiGet<{ data: CompetitionSport[] }>(`/tenants/${tenantId}/competitions/${competitionId}/sports`)),
-    enabled: !!tenantId && !!competitionId,
-  });
-
-  const enabledSports = sportsData?.data?.filter((s) => s.enabled) ?? [];
-  const categoriesQueries = useQueries({
-    queries: enabledSports.map((cs) => ({
-      queryKey: ['tenants', tenantId, 'competition-sports', cs.id, 'categories'],
-      queryFn: async () =>
-        assertOk(
-          await apiGet<CategoriesRes>(`/tenants/${tenantId}/competition-sports/${cs.id}/categories`)
-        ),
-      enabled: !!tenantId && !!cs.id,
-    })),
-  });
-  const categoriesBySportId = Object.fromEntries(
-    enabledSports.map((cs, i) => [
-      cs.id,
-      categoriesQueries[i]?.data?.data ?? [],
-    ])
-  );
+  const competition = overview?.competition;
+  const enabledSports = overview?.sports ?? [];
 
   const enablePublicView = useMutation({
     mutationFn: async () =>
@@ -82,7 +65,7 @@ export default function CompetitionDashboardPage() {
         )
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', tenantId, 'competitions', competitionId] });
+      queryClient.invalidateQueries({ queryKey: ['tenants', tenantId, 'competitions', competitionId, 'overview'] });
     },
   });
 
@@ -92,7 +75,7 @@ export default function CompetitionDashboardPage() {
         await apiPost(`/tenants/${tenantId}/competitions/${competitionId}/disable-public-view`, {})
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants', tenantId, 'competitions', competitionId] });
+      queryClient.invalidateQueries({ queryKey: ['tenants', tenantId, 'competitions', competitionId, 'overview'] });
     },
   });
 
@@ -110,7 +93,7 @@ export default function CompetitionDashboardPage() {
   };
 
   if (!tenantId) return <p>Loading...</p>;
-  if (compLoading || !competition) return <p>Loading competition...</p>;
+  if (overviewLoading || !competition) return <p>Loading competition...</p>;
 
   return (
     <div>
@@ -175,7 +158,7 @@ export default function CompetitionDashboardPage() {
       <h2 className="text-lg font-semibold mb-2">Sports & categories</h2>
       <div className="grid gap-3 md:grid-cols-2">
         {enabledSports.map((cs) => {
-          const categories = categoriesBySportId[cs.id] ?? [];
+          const categories = cs.categories ?? [];
           return (
             <Card key={cs.id}>
               <CardContent className="py-4">

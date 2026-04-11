@@ -11,6 +11,9 @@
     },
     "src/app/api/tenants/[tenantId]/competitions/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/tenants/[tenantId]/competitions/[competitionId]/overview/route.ts": {
+      "maxDuration": 60
     }
   }
 }
