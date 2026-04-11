@@ -1,3 +1,5 @@
+.vercel
+.env.vercel.pull
 node_modules
 .next
 dist

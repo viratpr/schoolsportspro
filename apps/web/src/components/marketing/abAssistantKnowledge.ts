@@ -51,9 +51,9 @@ const RULES: Rule[] = [
     reply: `For demos and questions, use the Contact page or write to ${SUPPORT_EMAIL}.`,
   },
   {
-    keywords: ['sport', 'sports', 'football', 'cricket', 'basketball', 'volleyball', 'kabaddi'],
+    keywords: ['sport', 'sports', 'soccer', 'football', 'baseball', 'basketball', 'volleyball', 'wrestling'],
     reply:
-      'We support multi-sport events — football, cricket, basketball, volleyball, kabaddi, and more — each with the right scorecard and optional player stats.',
+      'We support multi-sport events — soccer, baseball, basketball, volleyball, wrestling, track & field, and more — each with the right scorecard and optional player stats.',
   },
   {
     keywords: ['bracket', 'knockout', 'elimination'],

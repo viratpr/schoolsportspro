@@ -28,12 +28,45 @@ export function unwrap<T>(r: ApiResult<T>): T {
 }
 
 async function getToken(): Promise<string | null> {
-  const res = await fetch('/api/auth/session', { cache: 'no-store' });
-  const data = await res.json();
-  return data?.apiToken ?? null;
+  const now = Date.now();
+  if (cachedToken !== undefined && cachedTokenExpiresAt > now) {
+    return cachedToken;
+  }
+  if (inflightTokenPromise) {
+    return inflightTokenPromise;
+  }
+  inflightTokenPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/session', { cache: 'no-store' });
+      const data = await res.json();
+      const token = (data?.apiToken as string | null | undefined) ?? null;
+      cachedToken = token;
+      cachedTokenExpiresAt = Date.now() + TOKEN_CACHE_TTL_MS;
+      return token;
+    } catch {
+      cachedToken = null;
+      cachedTokenExpiresAt = Date.now() + 2000;
+      return null;
+    } finally {
+      inflightTokenPromise = null;
+    }
+  })();
+  return inflightTokenPromise;
 }
 
-const API_TIMEOUT_MS = 15000;
+/** Browser fetch timeout for /api/rest (Fastify + DB). Serverless cold start + pooler connect can exceed 15s. */
+const API_TIMEOUT_MS = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_TIMEOUT_MS;
+  if (raw && /^\d+$/.test(raw)) {
+    const n = Number(raw);
+    if (n >= 5000 && n <= 120000) return n;
+  }
+  return 45000;
+})();
+const TOKEN_CACHE_TTL_MS = 30000;
+let cachedToken: string | null | undefined;
+let cachedTokenExpiresAt = 0;
+let inflightTokenPromise: Promise<string | null> | null = null;
 
 /** Returns result object; does not throw. Use unwrap() in queryFn if you want React Query to see the error. */
 export async function api<T>(
@@ -54,7 +87,14 @@ export async function api<T>(
   const { params, ...init } = options;
   const url = new URL(path.startsWith('http') ? path : `${base}${path}`);
   if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const token = await getToken();
+  const pathForAuth = url.pathname;
+  const skipTokenLookup =
+    pathForAuth.includes('/auth/login') ||
+    pathForAuth.includes('/auth/signup') ||
+    pathForAuth.includes('/auth/forgot-password') ||
+    pathForAuth.includes('/auth/reset-password') ||
+    pathForAuth.includes('/public/');
+  const token = skipTokenLookup ? null : await getToken();
   const hasBody = init.body != null && init.body !== '';
   const headers: HeadersInit = {
     ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
@@ -69,9 +109,20 @@ export async function api<T>(
     res = await fetch(url.toString(), { ...init, headers, signal: controller.signal });
   } catch (err) {
     clearTimeout(timeoutId);
-    const msg = err instanceof Error && err.name === 'AbortError'
-      ? `Request timed out. Is the API running at ${base}?`
-      : (err instanceof Error ? err.message : 'Network error');
+    const msg =
+      err instanceof Error && err.name === 'AbortError'
+        ? (() => {
+            const local =
+              typeof window !== 'undefined' &&
+              (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+            if (local) {
+              return `Request timed out after ${API_TIMEOUT_MS / 1000}s. Is the API running at ${base}? Start it with: pnpm --filter @bharatathlete/api dev`;
+            }
+            return `Request timed out after ${API_TIMEOUT_MS / 1000}s. On Vercel, /api/rest may be cold-starting or waiting on Postgres—check Deployment → Logs, DATABASE_URL (Supabase pooler :6543, pgbouncer=true), and function duration limits.`;
+          })()
+        : err instanceof Error
+          ? err.message
+          : 'Network error';
     return { ok: false, error: { message: msg, statusCode: 0 } };
   }
   clearTimeout(timeoutId);

@@ -171,8 +171,13 @@ export default function CompetitionsPage() {
       {isError && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 p-4 text-sm">
           <p className="font-medium text-destructive">{error instanceof Error ? error.message : 'Failed to load competitions'}</p>
-          {error instanceof Error && error.message.includes('API running') && (
-            <p className="mt-2 text-muted-foreground">Start the API with: <code className="bg-muted px-1 rounded">pnpm --filter @bharatathlete/api dev</code></p>
+          {error instanceof Error && /timed out/i.test(error.message) && (
+            <p className="mt-2 text-muted-foreground text-sm">
+              Local: run{' '}
+              <code className="bg-muted px-1 rounded">pnpm --filter @bharatathlete/api dev</code>. Vercel: check
+              Deployment → Logs, <code className="bg-muted px-1 rounded">DATABASE_URL</code> (pooler), and that{' '}
+              <code className="bg-muted px-1 rounded">vercel.json</code> sets maxDuration for /api/rest (free Hobby plan allows up to 60s when configured).
+            </p>
           )}
         </div>
       )}

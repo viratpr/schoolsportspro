@@ -1,5 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && corepack enable pnpm && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter @bharatathlete/web run build"
+  "buildCommand": "cd ../.. && pnpm --filter @bharatathlete/web run build",
+  "functions": {
+    "src/app/api/auth/signup/route.ts": {
+      "maxDuration": 60
+    },
+    "pages/api/rest/[[...slug]].ts": {
+      "maxDuration": 60
+    }
+  }
 }

@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FixedMarketingBackground } from '@/components/marketing/FixedMarketingBackground';
-import { getApiBaseUrl } from '@/lib/api-base';
 
 const slugRegex = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 const schema = z.object({
@@ -46,20 +45,19 @@ function SignupForm() {
     searchParams.get('plan') === 'ANNUAL_PRO' ? 'ANNUAL_PRO' : null;
 
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   async function onSubmit(data: FormData) {
     setError(null);
-    const apiBase = getApiBaseUrl();
-    if (!apiBase) {
-      setError('API is not configured.');
-      return;
-    }
+    setSubmitting(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
     let res: Response;
     try {
-      res = await fetch(`${apiBase}/auth/signup`, {
+      res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -72,16 +70,22 @@ function SignupForm() {
           state: data.state || undefined,
           city: data.city || undefined,
         }),
+        signal: controller.signal,
       });
     } catch (e) {
       if (e instanceof TypeError) {
         setError(
           'Could not reach the server. Check your connection, or try again in a few minutes if our systems are busy.',
         );
+      } else if (e instanceof Error && e.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
       } else {
         setError('Something went wrong. Please try again.');
       }
+      setSubmitting(false);
       return;
+    } finally {
+      clearTimeout(timeout);
     }
 
     const bodyText = await res.text();
@@ -95,8 +99,9 @@ function SignupForm() {
         /* ignore */
       }
       setError(
-        `Server error (${res.status}).${fromApi} On Vercel this usually means /api/rest could not run or reach Postgres. Set DATABASE_URL to your Supabase pooler (6543) with pgbouncer=true, redeploy, open /api/rest/health, and check Deployment → Logs.`
+        `Server error (${res.status}).${fromApi} This signup route runs in Next.js (/api/auth/signup) and talks to Postgres via Prisma. On Vercel, set DATABASE_URL to your Supabase transaction pooler (port 6543) with ?pgbouncer=true (and connection_limit=1 if recommended), redeploy, then check Deployment → Logs for Prisma or connection errors.`
       );
+      setSubmitting(false);
       return;
     }
 
@@ -115,6 +120,7 @@ function SignupForm() {
             ? json.message
             : 'Signup failed',
       );
+      setSubmitting(false);
       return;
     }
 
@@ -126,6 +132,7 @@ function SignupForm() {
       });
       if (signInResult?.error) {
         router.push('/signup/success');
+        setSubmitting(false);
         return;
       }
 
@@ -136,13 +143,16 @@ function SignupForm() {
       if (postSignupPlan === 'ANNUAL_PRO') {
         router.replace('/app/billing');
         router.refresh();
+        setSubmitting(false);
         return;
       }
 
       router.push('/app/dashboard');
       router.refresh();
+      setSubmitting(false);
     } catch {
       setError('Something went wrong while completing signup. Please try again.');
+      setSubmitting(false);
     }
   }
 
@@ -204,7 +214,9 @@ function SignupForm() {
               </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full">Create account</Button>
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? 'Creating account...' : 'Create account'}
+            </Button>
           </form>
           <p className="text-sm text-muted-foreground mt-4 text-center">
             Already have an account? <Link href="/login" className="underline">Sign in</Link>

@@ -55,10 +55,17 @@ function ensureApiRestPath(base: string): string {
 export function getApiBaseUrl(): string | null {
   const onVercelServer = process.env.VERCEL === '1';
   const vercelHost = process.env.VERCEL_URL?.trim();
+  const nextAuthUrl = process.env.NEXTAUTH_URL?.trim();
 
   const serverApiOverride = process.env.SERVER_API_BASE_URL?.trim();
   if (onVercelServer && serverApiOverride && typeof window === 'undefined') {
     return ensureApiRestPath(serverApiOverride.replace(/\/+$/, ''));
+  }
+
+  // Prefer the canonical site origin when set; some deployments enforce auth on
+  // `*.vercel.app` deployment URLs, which can return HTML 401 instead of API JSON.
+  if (onVercelServer && nextAuthUrl && typeof window === 'undefined') {
+    return ensureApiRestPath(nextAuthUrl.replace(/\/+$/, ''));
   }
 
   if (onVercelServer && vercelHost && typeof window === 'undefined') {
